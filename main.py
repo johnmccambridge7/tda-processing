@@ -316,10 +316,6 @@ class MainWindow(QMainWindow):
         overview_layout = QVBoxLayout()
         overview_layout.setAlignment(Qt.AlignTop)
 
-
-
-
-
         # File Tree Group
         file_tree_group = QGroupBox("Directories")
         file_tree_layout = QVBoxLayout()
@@ -370,12 +366,12 @@ class MainWindow(QMainWindow):
 
     def populate_file_tree(self):
         # Add directory selectors as top-level items
-        input_dir_item = QTreeWidgetItem(self.file_tree, ["Input Directory"])
+        input_dir_item = QTreeWidgetItem(self.processing_file_tree, ["Input Directory"])
         input_dir_item.setData(0, Qt.UserRole, "input")
         input_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
         input_dir_item.setExpanded(False)
 
-        output_dir_item = QTreeWidgetItem(self.file_tree, ["Output Directory"])
+        output_dir_item = QTreeWidgetItem(self.processing_file_tree, ["Output Directory"])
         output_dir_item.setData(0, Qt.UserRole, "output")
         output_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
         output_dir_item.setExpanded(False)
@@ -383,7 +379,7 @@ class MainWindow(QMainWindow):
         # Populate file tree with the root directories
         drives = self.get_drives()
         for drive in drives:
-            drive_item = QTreeWidgetItem(self.file_tree, [drive])
+            drive_item = QTreeWidgetItem(self.processing_file_tree, [drive])
             drive_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
             drive_item.setExpanded(False)
 
@@ -635,6 +631,7 @@ class MainWindow(QMainWindow):
         if selected_dir:
             self.selected_output_dir = selected_dir
             self.update_run_button_state()
+            self.populate_input_files()
 
 
 def main():
