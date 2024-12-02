@@ -328,22 +328,30 @@ class MainWindow(QMainWindow):
         # Create grid layout for directory selection and file trees
         grid_layout = QGridLayout()
 
-        # Input Directory Selection at the top (row 0, spanning two columns)
-        input_directory_group = QGroupBox("Input Directory")
-        input_directory_layout = QHBoxLayout()
-        input_directory_layout.setSpacing(5)
-
-        self.input_dir_line_edit = QLineEdit()
-        self.input_dir_line_edit.setReadOnly(True)
-        self.input_dir_line_edit.setStyleSheet("color: black;")
-        self.input_dir_line_edit.setPlaceholderText("Select Input Directory")
-        self.browse_input_button = QPushButton("Browse")
-        self.browse_input_button.clicked.connect(self.set_input_directory)
-
-        input_directory_layout.addWidget(self.input_dir_line_edit)
-        input_directory_layout.addWidget(self.browse_input_button)
+        # Input Directories Selection at the top (row 0, spanning two columns)
+        input_directory_group = QGroupBox("Input Directories")
+        input_directory_layout = QVBoxLayout()
+        
+        # List to store input directories
+        self.input_directories = []
+        
+        # Directory list widget
+        self.directory_list = QTreeWidget()
+        self.directory_list.setHeaderLabels(["Directory Path", "Actions"])
+        self.directory_list.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.directory_list.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        
+        # Add Directory button
+        add_directory_layout = QHBoxLayout()
+        self.browse_input_button = QPushButton("Add Directory")
+        self.browse_input_button.clicked.connect(self.add_input_directory)
+        add_directory_layout.addWidget(self.browse_input_button)
+        add_directory_layout.addStretch()
+        
+        input_directory_layout.addWidget(self.directory_list)
+        input_directory_layout.addLayout(add_directory_layout)
         input_directory_group.setLayout(input_directory_layout)
-
+        
         # Add input directory group to grid (row 0, spanning two columns)
         grid_layout.addWidget(input_directory_group, 0, 0, 1, 2)
 
@@ -396,11 +404,12 @@ class MainWindow(QMainWindow):
         self.file_status_items = {}
         self.processing_complete = False  # Add state tracking
 
-        if self.input_dir:
-            # Create root directory item
-            dir_name = os.path.basename(self.input_dir)
-            root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
-            root_item.setExpanded(True)  # Expand by default
+        if self.input_directories:
+            for input_dir in self.input_directories:
+                # Create root directory item
+                dir_name = os.path.basename(input_dir)
+                root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
+                root_item.setExpanded(True)  # Expand by default
             
             # Add run button to directory row if processing is not complete
             if not hasattr(self, 'processing_complete') or not self.processing_complete:
@@ -410,10 +419,12 @@ class MainWindow(QMainWindow):
                 self.run_button.clicked.connect(self.handle_output_selection)
                 self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
             
-            # Find all compatible files
-            self.to_process = [
-                file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(self.input_dir, f"*{ext}"))
-            ]
+            # Find all compatible files from all directories
+            self.to_process = []
+            for input_dir in self.input_directories:
+                self.to_process.extend([
+                    file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(input_dir, f"*{ext}"))
+                ])
             if not self.to_process:
                 QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected input directory.")
                 return
@@ -636,11 +647,28 @@ class MainWindow(QMainWindow):
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
 
-    def set_input_directory(self):
-        selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory", self.input_dir or "")
-        if selected_dir:
-            self.input_dir = selected_dir
-            self.input_dir_line_edit.setText(selected_dir)
+    def add_input_directory(self):
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory")
+        if selected_dir and selected_dir not in self.input_directories:
+            self.input_directories.append(selected_dir)
+            
+            # Create tree item for the directory
+            item = QTreeWidgetItem(self.directory_list)
+            item.setText(0, selected_dir)
+            
+            # Create remove button
+            remove_button = QPushButton("Remove")
+            remove_button.clicked.connect(lambda: self.remove_input_directory(selected_dir, item))
+            self.directory_list.setItemWidget(item, 1, remove_button)
+            
+            self.update_run_button_state()
+            self.populate_input_files()
+            
+    def remove_input_directory(self, directory, item):
+        if directory in self.input_directories:
+            self.input_directories.remove(directory)
+            root = self.directory_list.invisibleRootItem()
+            root.removeChild(item)
             self.update_run_button_state()
             self.populate_input_files()
 
