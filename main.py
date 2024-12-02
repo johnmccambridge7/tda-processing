@@ -150,6 +150,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('base-app/icon.png'))
         self.input_directories = []  # Initialize input_directories list
         self.output_directories = {}  # Dictionary to map input directories to their output directories
+        self.directories_with_output = set()  # Track which directories have output set
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2E2E2E;
@@ -395,12 +396,12 @@ class MainWindow(QMainWindow):
             dir_item.setText(1, os.path.basename(os.path.dirname(input_dir)))  # Show parent folder name
             dir_item.setToolTip(1, input_dir)  # Full path as tooltip
 
-            # Add set output button for directory
-            set_output_button = QPushButton("Set Output")
-            set_output_button.setStyleSheet("font-size: 10px; padding: 2px 8px;")  # Smaller font and padding
-            # Connect with lambda to pass input_dir and set_output_button
-            set_output_button.clicked.connect(lambda _, d=input_dir, b=set_output_button: self.handle_output_selection(d, b))
-            self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
+            # Only show Set Output button if directory doesn't have output set
+            if input_dir not in self.directories_with_output:
+                set_output_button = QPushButton("Set Output")
+                set_output_button.setStyleSheet("font-size: 10px; padding: 2px 8px;")  # Smaller font and padding
+                set_output_button.clicked.connect(lambda _, d=input_dir: self.handle_output_selection(d))
+                self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
 
             # Find and add files for this directory
             files = []
@@ -438,15 +439,12 @@ class MainWindow(QMainWindow):
             # Add a small arrow icon to indicate it's expandable
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
-    def handle_output_selection(self, input_dir, button):
+    def handle_output_selection(self, input_dir):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
         if selected_dir:
             self.output_directories[input_dir] = selected_dir
-            # Remove the button widget entirely
-            button_parent = button.parent()
-            if button_parent:
-                button_parent.layout().removeWidget(button)
-            button.deleteLater()  # Permanently delete the button
+            self.directories_with_output.add(input_dir)  # Mark this directory as having output set
+            self.populate_input_files()  # Refresh the display
             self.populate_output_files()
             
             # Get files only from the selected input directory
