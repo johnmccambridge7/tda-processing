@@ -147,7 +147,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(WINDOW_TITLE)
         screen = QApplication.primaryScreen().size()
-        self.resize(screen.width(), screen.height())
+        # Make window slightly wider than screen height for better table visibility
+        self.resize(int(screen.height() * 1.2), screen.height())
         self.setWindowIcon(QIcon('base-app/icon.png'))
         self.input_directories = []  # Initialize input_directories list
         self.output_directories = {}  # Dictionary to map input directories to their output directories
@@ -319,7 +320,7 @@ class MainWindow(QMainWindow):
             preview_title.setFont(QFont("SF Pro", 12))
             preview_title.setAlignment(Qt.AlignCenter)
             preview_label = QLabel()
-            preview_label.setFixedSize(200, 200)
+            preview_label.setFixedSize(250, 250)
             preview_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
             preview_label.setAlignment(Qt.AlignCenter)
             self.preview_labels.append(preview_label)
@@ -328,7 +329,7 @@ class MainWindow(QMainWindow):
             reference_title.setFont(QFont("SF Pro", 12))
             reference_title.setAlignment(Qt.AlignCenter)
             reference_label = QLabel()
-            reference_label.setFixedSize(200, 200)
+            reference_label.setFixedSize(250, 250)
             reference_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
             reference_label.setAlignment(Qt.AlignCenter)
             self.reference_labels.append(reference_label)
