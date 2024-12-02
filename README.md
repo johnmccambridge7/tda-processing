@@ -1,141 +1,89 @@
 
 # TDA Processing App
 
-<div align="center">
-
-![TDA Processing App Logo](assets/logo.png)
-
-[![Python Version](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-*Advanced Microscopy Image Processing Made Simple*
+High-performance microscopy image processing application for `.lsm` and `.czi` formats. Implements automated channel processing with histogram matching and reference-based normalization.
 
-[Getting Started](#getting-started) • [Documentation](#documentation) • [Contributing](#contributing) • [Support](#support)
+## Features
 
-</div>
+- Batch processing of microscopy image files
+- Automated channel processing:
+  - Reference channel selection via SNR optimization
+  - Histogram matching for intensity normalization
+  - Median filtering for noise reduction
+- Real-time processing previews
+- Metadata extraction and scaling parameter handling
+- Progress tracking with detailed status updates
 
-## Overview
+## Installation
 
-TDA Processing App is a sophisticated yet user-friendly application designed for processing microscopy images, specifically optimized for `.lsm` and `.czi` file formats. Built with PyQt5 and powered by cutting-edge image processing algorithms, it streamlines the workflow of microscopy data analysis while maintaining scientific precision.
+```bash
+# Clone repository
+git clone https://github.com/yourusername/tda-processing-app.git
+cd tda-processing-app
 
-## Key Features
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-- **Modern Interface**: Sleek, intuitive GUI built with PyQt5
-- **High-Performance Processing**: Optimized algorithms for efficient image processing
-- **Batch Processing**: Handle multiple files simultaneously
-- **Advanced Channel Processing**: 
-  - Intelligent histogram matching
-  - Automated reference channel selection
-  - Real-time preview capabilities
-- **Smart Metadata Handling**: Automatic extraction and utilization of image metadata
-- **Progress Tracking**: Detailed visual feedback on processing status
-- **Precision Controls**: Fine-tuned scaling and processing parameters
+# Install dependencies
+pip install -r requirements.txt
+```
 
-## Getting Started
+## Usage
 
-### Prerequisites
+```bash
+python main.py
+```
 
-- Python 3.7 or higher
-- Git (for cloning the repository)
-- Operating System: Windows 10+, macOS 10.14+, or Linux
+### Processing Workflow
 
-### Installation
+1. Load images:
+   - Select directory for batch processing
+   - Load single file
+   - Drag and drop supported files
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/yourusername/tda-processing-app.git
-   cd tda-processing-app
-   ```
+2. Configure parameters:
+   - Scaling factors (x, y, z)
+   - Resolution
+   - Microscope-specific settings
 
-2. **Set Up Virtual Environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+3. Process images:
+   - Real-time preview of channel processing
+   - Progress monitoring
+   - Output validation
 
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Documentation
-
-### Basic Usage
-
-1. **Launch the Application**
-   ```bash
-   python main.py
-   ```
-
-2. **Load Images**
-   - Use "Browse Directory" for batch processing
-   - Use "Load Image" for single file processing
-   - Drag and drop files directly into the application
-
-3. **Configure Processing**
-   - Adjust scaling parameters if needed
-   - Select reference channels
-   - Configure output preferences
-
-4. **Process Images**
-   - Monitor progress in real-time
-   - Preview results
-   - Access processed files in the output directory
-
-### Advanced Features
-
-- **Batch Processing**: Process entire directories of images while maintaining consistent parameters
-- **Channel Management**: Fine-tune individual channel processing with preview capabilities
-- **Metadata Integration**: Automatic scaling and parameter adjustment based on image metadata
-- **Custom Output**: Flexible output options with configurable file naming and directory structure
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
-
-- Code Style
-- Development Setup
-- Pull Request Process
-- Bug Reports
-- Feature Requests
-
-## Development
+## Technical Details
 
 ### Project Structure
 ```
 tda-processing-app/
-├── main.py           # Application entry point
-├── functions.py      # Core processing functions
-├── constants.py      # Configuration constants
-├── requirements.txt  # Dependencies
-└── fonts/           # Custom UI fonts
+├── main.py           # PyQt5 application entry point
+├── functions.py      # Image processing core functions
+├── constants.py      # Configuration and parameters
+└── requirements.txt  # Python dependencies
 ```
 
-### Testing
+### Key Components
 
-Run the test suite:
+- **Channel Processing**: Implements SNR-based reference selection and histogram matching
+- **Metadata Handling**: Extracts and applies microscope-specific parameters
+- **UI Framework**: PyQt5-based interface with real-time preview capabilities
+- **Output Generation**: Multi-channel TIFF generation with metadata preservation
+
+## Development
+
+Run tests:
 ```bash
 python -m pytest tests/
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE)
 
-## Acknowledgements
+## Issues & Support
 
-- Dr. Penelope L. Tir - Project Lead
-- John L. McCambridge - Core Developer
-- The Scientific Imaging Community
-
-## Support
-
-- Email: support@tdaprocessing.org
-- Issues: [GitHub Issues](https://github.com/yourusername/tda-processing-app/issues)
-- Wiki: [Project Wiki](https://github.com/yourusername/tda-processing-app/wiki)
-
----
-<div align="center">
-Made by the TDA Processing Team
-</div>
+[GitHub Issues](https://github.com/yourusername/tda-processing-app/issues)
