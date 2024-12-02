@@ -342,7 +342,6 @@ class MainWindow(QMainWindow):
             previews_container.setLayout(channel_layout)
             previews_layout.addWidget(previews_container)
 
-        previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
         # Create grid layout for file trees with equal column widths
@@ -361,6 +360,7 @@ class MainWindow(QMainWindow):
         # Add Directory button as first row
         add_dir_item = QTreeWidgetItem(self.input_file_tree)
         add_dir_item.setText(0, "+ Add Folder")
+        add_dir_item.setText(1, "Click to add a new directory")
         add_dir_item.setToolTip(0, "Click to add a new input directory")
         
         # Style the "Add Directory" row
@@ -477,10 +477,6 @@ class MainWindow(QMainWindow):
         font.setBold(True)
         add_dir_item.setFont(0, font)
         add_dir_item.setFont(1, font)  # Also bold the description
-        
-        # Set a distinct background color
-        for col in range(3):
-            add_dir_item.setBackground(col, Qt.lightGray)
             
         # Ensure the click handler is properly connected
         self.input_file_tree.itemClicked.connect(
