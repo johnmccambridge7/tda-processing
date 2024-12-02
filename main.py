@@ -386,10 +386,6 @@ class MainWindow(QMainWindow):
         self.processing_complete = False
         self.to_process = []
 
-        if not hasattr(self, 'processing_complete') or not self.processing_complete:
-            # Create header item
-            header_item = QTreeWidgetItem(self.input_file_tree)
-
         for input_dir in self.input_directories:
             # Create directory item
             dir_name = os.path.basename(input_dir)
@@ -397,17 +393,17 @@ class MainWindow(QMainWindow):
             dir_item.setText(0, dir_name)
             dir_item.setText(1, os.path.basename(os.path.dirname(input_dir)))  # Show parent folder name
             dir_item.setToolTip(1, input_dir)  # Full path as tooltip
-            
+
             # Add set output button for directory
             set_output_button = QPushButton("Set Output")
             set_output_button.clicked.connect(self.handle_output_selection)
             self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
-            
+
             # Find and add files for this directory
             files = []
             for ext in ACCEPTED_FILE_TYPES:
                 files.extend(glob.glob(os.path.join(input_dir, f"*{ext}")))
-            
+
             if files:
                 self.to_process.extend(files)
                 for file_path in files:
@@ -421,7 +417,7 @@ class MainWindow(QMainWindow):
                     progress_bar.setMaximum(100)
                     self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
                     self.file_status_items[file_path] = (file_item, progress_bar)
-            
+
             dir_item.setExpanded(True)
 
         if not self.to_process:
@@ -430,7 +426,7 @@ class MainWindow(QMainWindow):
     def populate_output_files(self):
         self.output_file_tree.clear()
         self.output_file_status_items = {}
-        
+
         if self.selected_output_dir:
             # Create root directory item for output with dropdown
             dir_name = os.path.basename(self.selected_output_dir)
@@ -627,8 +623,6 @@ class MainWindow(QMainWindow):
             self.input_directories.append(selected_dir)
             
             # Refresh the input files display
-            
-            self.update_run_button_state()
             self.populate_input_files()
             
     def remove_input_directory(self, directory, item):
@@ -636,7 +630,6 @@ class MainWindow(QMainWindow):
             self.input_directories.remove(directory)
             root = self.directory_list.invisibleRootItem()
             root.removeChild(item)
-            self.update_run_button_state()
             self.populate_input_files()
 
     def set_output_directory(self):
@@ -644,7 +637,6 @@ class MainWindow(QMainWindow):
         if selected_dir:
             self.selected_output_dir = selected_dir
             self.output_dir_line_edit.setText(selected_dir)
-            self.update_run_button_state()
             self.populate_output_files()
 
 
