@@ -322,8 +322,8 @@ class MainWindow(QMainWindow):
 
         # Directory Selection Buttons
         buttons_layout = QHBoxLayout()
-        self.set_input_button = QPushButton("Set Input Directory")
-        self.set_output_button = QPushButton("Set Output Directory")
+        self.set_input_button = QPushButton("Choose Input Folder")
+        self.set_output_button = QPushButton("Choose Output Folder")
         buttons_layout.addWidget(self.set_input_button)
         buttons_layout.addWidget(self.set_output_button)
         file_tree_layout.addLayout(buttons_layout)
