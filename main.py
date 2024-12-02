@@ -469,16 +469,21 @@ class MainWindow(QMainWindow):
         add_dir_item.setText(1, "Click to add a new directory")  # Add descriptive text
         add_dir_item.setToolTip(0, "Click to add a new input directory")
         add_dir_item.is_add_directory = True  # Custom attribute to identify this item
-
+        
         # Style the "Add Directory" row
         font = add_dir_item.font(0)
         font.setBold(True)
         add_dir_item.setFont(0, font)
         add_dir_item.setFont(1, font)  # Also bold the description
-
+        
         # Set a distinct background color
         for col in range(3):
             add_dir_item.setBackground(col, Qt.lightGray)
+            
+        # Ensure the click handler is properly connected
+        self.input_file_tree.itemClicked.connect(
+            lambda item: self.add_input_directory() if getattr(item, 'is_add_directory', False) else None
+        )
 
     def populate_output_files(self):
         self.output_file_tree.clear()
