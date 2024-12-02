@@ -414,23 +414,6 @@ class MainWindow(QMainWindow):
         self.to_process = []
         saved_progress = self.file_progress.copy()  # Save current progress
 
-        # Add Directory button as first row
-        add_dir_item = QTreeWidgetItem(self.input_file_tree)
-        add_dir_item.setText(0, "+ Add Folder")
-        add_dir_item.setText(1, "Click to add a new directory")  # Add descriptive text
-        add_dir_item.setToolTip(0, "Click to add a new input directory")
-        add_dir_item.is_add_directory = True  # Custom attribute to identify this item
-        
-        # Style the "Add Directory" row
-        font = add_dir_item.font(0)
-        font.setBold(True)
-        add_dir_item.setFont(0, font)
-        add_dir_item.setFont(1, font)  # Also bold the description
-        
-        # Set a distinct background color
-        for col in range(3):
-            add_dir_item.setBackground(col, Qt.lightGray)
-
         for input_dir in self.input_directories:
             # Create directory item
             dir_name = os.path.basename(input_dir)
@@ -479,6 +462,23 @@ class MainWindow(QMainWindow):
 
         if not self.to_process:
             QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directories.")
+
+        # Add Directory button as first row
+        add_dir_item = QTreeWidgetItem(self.input_file_tree)
+        add_dir_item.setText(0, "+ Add Folder")
+        add_dir_item.setText(1, "Click to add a new directory")  # Add descriptive text
+        add_dir_item.setToolTip(0, "Click to add a new input directory")
+        add_dir_item.is_add_directory = True  # Custom attribute to identify this item
+
+        # Style the "Add Directory" row
+        font = add_dir_item.font(0)
+        font.setBold(True)
+        add_dir_item.setFont(0, font)
+        add_dir_item.setFont(1, font)  # Also bold the description
+
+        # Set a distinct background color
+        for col in range(3):
+            add_dir_item.setBackground(col, Qt.lightGray)
 
     def populate_output_files(self):
         self.output_file_tree.clear()
