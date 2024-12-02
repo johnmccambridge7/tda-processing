@@ -125,8 +125,10 @@ class ImageSaverWorker(Thread):
                 [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
-            # Transpose to (Z, Y, X, RGB) order for ImageJ hyperstack
-            rgb_image = rgb_image.transpose((1, 2, 3, 0))
+            # Reshape to (T, Z, C, Y, X, S) order for ImageJ hyperstack
+            # Since we don't have T and S dimensions, we'll add them as singleton dimensions
+            rgb_image = rgb_image[np.newaxis, :, :, :, :, np.newaxis]  # Add T and S dimensions
+            rgb_image = rgb_image.transpose((0, 1, 3, 4, 2, 5))  # Reorder to TZCYXS
             
             # Convert to uint8 for saving
             tiff = rgb_image.astype(np.uint8)
@@ -140,7 +142,7 @@ class ImageSaverWorker(Thread):
 
             # Metadata for ImageJ hyperstack
             image_metadata = {
-                'axes': 'ZYXC',  # Specify correct dimension order
+                'axes': 'TZCYXS',  # Specify correct dimension order
                 'spacing': voxel_size_z,  # Z spacing in microns
                 'unit': 'micron',
                 'finterval': 1,
