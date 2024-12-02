@@ -404,6 +404,12 @@ class MainWindow(QMainWindow):
         self.file_status_items = {}
 
         if self.input_dir:
+            # Create root directory item
+            dir_name = os.path.basename(self.input_dir)
+            root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
+            root_item.setExpanded(True)  # Expand by default
+            
+            # Find all compatible files
             self.to_process = [
                 file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(self.input_dir, f"*{ext}"))
             ]
@@ -411,11 +417,12 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected input directory.")
                 return
 
+            # Add files as children of the root item
             for file_path in self.to_process:
                 file_name = os.path.basename(file_path)
                 file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
                 formatted_size = f"{file_size:.2f} MB"
-                item = QTreeWidgetItem(self.input_file_tree, [file_name, formatted_size, "0%"])
+                item = QTreeWidgetItem(root_item, [file_name, formatted_size, "0%"])
                 progress_bar = QProgressBar()
                 progress_bar.setValue(0)
                 progress_bar.setMaximum(100)
