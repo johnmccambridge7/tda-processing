@@ -317,8 +317,7 @@ class MainWindow(QMainWindow):
         # Right side: File Trees
         file_trees_layout = QHBoxLayout()
 
-        # Input File Tree
-        input_file_tree_group = QGroupBox("Input Files")
+        input_file_tree_group = QGroupBox("Input")
         input_file_tree_layout = QVBoxLayout()
 
         # Input Directory Selection
@@ -349,7 +348,7 @@ class MainWindow(QMainWindow):
         file_trees_layout.addWidget(input_file_tree_group)
 
         # Output File Tree
-        output_file_tree_group = QGroupBox("Output Files")
+        output_file_tree_group = QGroupBox("Output")
         output_file_tree_layout = QVBoxLayout()
 
         # Output Directory Selection
