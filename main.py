@@ -98,33 +98,43 @@ class ImageSaverWorker(Thread):
 
     def run(self):
         try:
-            # Get number of channels from metadata
-            with TiffFile(self.current_file) as tif:
-                lsm_meta = tif.lsm_metadata
-                num_channels = lsm_meta.get('DimensionChannels', 3)
-                # Get channel colors and ordering from metadata
-                channel_colors = lsm_meta.get('ChannelColors', {}).get('Colors', [])
-
-            if len(self.processed_channels) != num_channels:
-                self.signals.save_error.emit(f"Expected {num_channels} channels but got {len(self.processed_channels)}")
+            channel_order = self.scaling_params.get('channel_order', list(self.processed_channels.keys()))
+            if not channel_order:
+                self.signals.save_error.emit("Channel order not specified.")
                 return
 
-            # Create ordered channel list based on metadata colors
-            ordered_channels = []
-            for i in range(num_channels):
-                ordered_channels.append(self.processed_channels[i])
+            # Ensure channel_order is sorted based on MultiplexOrder
+            sorted_channels = sorted(channel_order, key=lambda x: x)
 
-            # Stack the processed channels
-            new_image = np.array(ordered_channels)
-            new_image = new_image.transpose((1, 0, 2, 3))
+            # Handle cases where there are only two channels
+            if len(sorted_channels) == 2:
+                # Duplicate the second channel to make it three channels
+                sorted_channels.append(sorted_channels[-1])
+
+            if len(self.processed_channels) != len(sorted_channels):
+                self.signals.save_error.emit(f"Expected {len(sorted_channels)} channels but got {len(self.processed_channels)}")
+                return
+
+            # Stack the processed channels based on the sorted order
+            ordered_processed = [self.processed_channels[idx] for idx in sorted_channels]
+            new_image = np.array(ordered_processed)
+            new_image = new_image.transpose((1, 0, 2, 3))  # Transpose to ZCYX
 
             tiff = np.array(new_image).astype(np.uint8)
+
+            # Correct voxel sizes and resolution
+            voxel_size_x = float(self.scaling_params.get('VoxelSizeX', 1.0))
+            voxel_size_y = float(self.scaling_params.get('VoxelSizeY', 1.0))
+            voxel_size_z = float(self.scaling_params.get('VoxelSizeZ', 1.0))
+            resolution_x = float(self.scaling_params.get('resolution', '1.0'))
+            resolution_y = float(self.scaling_params.get('resolution', '1.0'))
 
             image_metadata = {
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
-                'spacing': self.scaling_params.get('zstep', '1.0')
+                'spacing': (voxel_size_x, voxel_size_y, voxel_size_z),
+                'resolution': (resolution_x, resolution_y)
             }
 
             os.makedirs(self.output_dir, exist_ok=True)
@@ -136,8 +146,7 @@ class ImageSaverWorker(Thread):
             imwrite(
                 output_path,
                 tiff,
-                resolution=(float(self.scaling_params.get('resolution', '1.0')),
-                            float(self.scaling_params.get('resolution', '1.0'))),
+                resolution=(resolution_x, resolution_y),
                 imagej=True,
                 metadata=image_metadata
             )
@@ -263,12 +272,13 @@ class MainWindow(QMainWindow):
         self.total_progress = 0
         self.expected_total = 0
         self.scaling_params = {
-            'zstep': '1.0',
-            'xscale': Decimal('1.0'),
-            'yscale': Decimal('1.0'),
-            'resolution': Decimal('1.00'),
+            'VoxelSizeX': 1.0,
+            'VoxelSizeY': 1.0,
+            'VoxelSizeZ': 1.0,
+            'resolution': 1.0,
             'lsm510': 0,
-            'lsm880': 0
+            'lsm880': 0,
+            'channel_order': []
         }
         self.file_status_items = {}
         self.output_file_status_items = {}
@@ -464,6 +474,7 @@ class MainWindow(QMainWindow):
         add_dir_item.setFont(1, font)  # Also bold the description
 
         # Ensure the click handler is properly connected
+        self.input_file_tree.itemClicked.disconnect()
         self.input_file_tree.itemClicked.connect(
             lambda item: self.add_input_directory() if getattr(item, 'is_add_directory', False) else None
         )
@@ -487,6 +498,7 @@ class MainWindow(QMainWindow):
                         file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
                         formatted_size = f"{file_size:.2f} MB"
                         item = QTreeWidgetItem(root_item, [file_name, formatted_size, "Saved"])
+                        self.output_file_tree.setItemWidget(item, 2, QLabel("Saved"))
                         self.output_file_status_items[output_path] = (item, None)
 
     def handle_output_selection(self, input_dir):
@@ -574,7 +586,6 @@ class MainWindow(QMainWindow):
         self.input_file_tree.setCurrentItem(None)
 
         metadata = self.extract_lsm_metadata(self.current_file)
-        print(metadata)
         if metadata:
             self.scaling_params.update(metadata)
 
@@ -651,41 +662,38 @@ class MainWindow(QMainWindow):
         return True  # Modify based on selection logic if needed
 
     def extract_lsm_metadata(self, file_path):
-        from decimal import Decimal, getcontext
-        getcontext().prec = 50  # Set precision to handle precise calculations
-
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
                 if lsm_meta is None:
                     return {}
 
-                # Extract voxel size in meters and convert to micrometers
-                voxel_size_x = Decimal(lsm_meta.get('VoxelSizeX', 1.0)) * Decimal(1e6)  # Convert to μm
-                voxel_size_y = Decimal(lsm_meta.get('VoxelSizeY', 1.0)) * Decimal(1e6)  # Convert to μm
-                voxel_size_z = Decimal(lsm_meta.get('VoxelSizeZ', 1.0)) * Decimal(1e6)  # Convert to μm
+                # Extract voxel size
+                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0))  # Default to 1.0 if missing
+                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0))
+                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0))
 
-                # Calculate resolution in pixels per micrometer
-                resolution_x = Decimal(1) / voxel_size_x if voxel_size_x > 0 else Decimal(0)
-                resolution_y = Decimal(1) / voxel_size_y if voxel_size_y > 0 else Decimal(0)
-                resolution_z = Decimal(1) / voxel_size_z if voxel_size_z > 0 else Decimal(0)
+                # Derive resolution if not explicitly available
+                resolution = (voxel_size_x + voxel_size_y + voxel_size_z) / 3  # Simple average
 
-                # Average resolution for a single value (optional)
-                resolution = (resolution_x + resolution_y + resolution_z) / 3
+                # Parse channel information to detect channel order based on MultiplexOrder
+                tracks = lsm_meta.get('ScanInformation', {}).get('Tracks', [])
+                if not tracks:
+                    return {}
 
-                # Parse channel information to detect LSM device types
-                tracks = lsm_meta.get('Tracks', [])
-                is_lsm510 = any(track.get('Name', '').lower().startswith('lsm510') for track in tracks)
-                is_lsm880 = any(track.get('Name', '').lower().startswith('lsm880') for track in tracks)
+                # Sort tracks based on MultiplexOrder
+                sorted_tracks = sorted(tracks, key=lambda t: t.get('MultiplexOrder', 0))
+                channel_order = [track['Name'] for track in sorted_tracks]
 
                 # Create a dictionary for scaling parameters
                 scaling_params = {
-                    'xscale': voxel_size_x,
-                    'yscale': voxel_size_y,
-                    'zstep': voxel_size_z,
+                    'VoxelSizeX': voxel_size_x,
+                    'VoxelSizeY': voxel_size_y,
+                    'VoxelSizeZ': voxel_size_z,
                     'resolution': resolution,
-                    'lsm510': 1 if is_lsm510 else 0,
-                    'lsm880': 1 if is_lsm880 else 0
+                    'lsm510': 1 if any(track.get('Name', '').lower().startswith('lsm510') for track in tracks) else 0,
+                    'lsm880': 1 if any(track.get('Name', '').lower().startswith('lsm880') for track in tracks) else 0,
+                    'channel_order': channel_order
                 }
 
                 return scaling_params
@@ -718,13 +726,14 @@ class MainWindow(QMainWindow):
         # Update the input file tree progress
         if self.current_file in self.file_status_items:
             item, progress_bar = self.file_status_items[self.current_file]
-            progress_bar.setValue(int(progress_percentage))
-            if progress_percentage >= 100:
-                progress_bar.setProperty("complete", True)
-                progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
-                completed_label = QLabel("Done")
-                completed_label.setStyleSheet("color: #45a049;")
-                self.input_file_tree.setItemWidget(item, 2, completed_label)
+            if progress_bar:
+                progress_bar.setValue(int(progress_percentage))
+                if progress_percentage >= 100:
+                    progress_bar.setProperty("complete", True)
+                    progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
+                    completed_label = QLabel("Done")
+                    completed_label.setStyleSheet("color: #45a049;")
+                    self.input_file_tree.setItemWidget(item, 2, completed_label)
 
     def update_preview(self, channel_idx, pixmap):
         if 0 <= channel_idx < len(self.preview_labels):
@@ -828,6 +837,9 @@ class MainWindow(QMainWindow):
             file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
             formatted_size = f"{file_size:.2f} MB"
             item = QTreeWidgetItem(root, [file_name, formatted_size, "Saved"])
+            completed_label = QLabel("Saved")
+            completed_label.setStyleSheet("color: #45a049;")
+            self.output_file_tree.setItemWidget(item, 2, completed_label)
             self.output_file_status_items[output_path] = (item, None)
 
     def show_error(self, message):
