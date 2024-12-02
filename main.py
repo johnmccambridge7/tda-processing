@@ -453,8 +453,7 @@ class MainWindow(QMainWindow):
         if selected_dir:
             self.selected_output_dir = selected_dir
             self.populate_output_files()
-            self.run_button.setText("Running...")
-            self.run_button.setEnabled(False)
+            # Start processing immediately after output directory is selected
             self.run_processing()
 
     def run_processing(self):
