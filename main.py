@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(WINDOW_TITLE)
-        self.setGeometry(100, 100, 1200, 800)
+        self.showFullScreen()  # Make window fullscreen by default
         self.setWindowIcon(QIcon('base-app/icon.png'))
         self.input_directories = []  # Initialize input_directories list
         self.output_directories = {}  # Dictionary to map input directories to their output directories
