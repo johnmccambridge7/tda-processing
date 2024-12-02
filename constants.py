@@ -20,6 +20,7 @@ SCALING_INSTRUCTIONS = "Configure microscope parameters and scaling options"
 COPYRIGHT_TEXT = "© 2024 Penelope L. Tir & John L. McCambridge"
 
 # Button text
+RUN_TEXT = "Run"
 LOAD_DIR_TEXT = "Browse Directory"
 LOAD_DIR_DESC = "Process multiple files at once"
 DRAG_DROP_TEXT = "Drag & Drop Files"

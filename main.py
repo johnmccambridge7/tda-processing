@@ -208,11 +208,19 @@ class MainWindow(QMainWindow):
             QTreeWidget::item:selected {
                 background-color: #5A4ACD;
             }
+            QPushButton#runButton {
+                background-color: #28a745;
+            }
+            QPushButton#runButton:disabled {
+                background-color: #6c757d;
+            }
         """)
         self.output_dir = DEFAULT_OUTPUT_DIR
         self.to_process = []
         self.processed_channels = {}
         self.completed_files = 0
+        self.input_dir = ""
+        self.selected_output_dir = ""
         self.init_ui()
         self.total_progress = 0
         self.expected_total = 0
@@ -247,44 +255,44 @@ class MainWindow(QMainWindow):
         # Header
         header_layout = QHBoxLayout()
 
-        # Left side: Title and instructions
-        left_layout = QVBoxLayout()
+        # Title and instructions
+        title_layout = QVBoxLayout()
         title_label = QLabel("TDA Processing App")
         title_font = QFont("SF Pro", 24, QFont.Bold)
         title_label.setFont(title_font)
-        left_layout.addWidget(title_label)
+        title_layout.addWidget(title_label)
 
-        instructions = QLabel("Select an option to start processing your images:")
+        instructions = QLabel("Select input and output directories to start processing your images:")
         instructions_font = QFont("SF Pro", 14)
         instructions.setFont(instructions_font)
-        left_layout.addWidget(instructions)
+        title_layout.addWidget(instructions)
 
-        header_layout.addLayout(left_layout)
-
-        # Stretch to push buttons to the right
-        header_layout.addStretch()
-
-        # Right side: Buttons and "or" label
-        load_dir_btn = QPushButton("Browse Directory")
-        load_dir_btn.clicked.connect(self.load_directory)
-        load_dir_btn.setToolTip("Select a directory with image files to process.")
-        load_dir_btn.setFont(regular_font)
-        header_layout.addWidget(load_dir_btn)
-
-        # "or" label
-        or_label = QLabel("or")
-        or_label.setFont(QFont("SF Pro", 12))
-        or_label.setAlignment(Qt.AlignCenter)
-        or_label.setStyleSheet("color: #FFFFFF; margin: 0 10px;")
-        header_layout.addWidget(or_label)
-
-        load_file_btn = QPushButton("Load Image")
-        load_file_btn.clicked.connect(self.load_single_image)
-        load_file_btn.setToolTip("Select a single image file to process.")
-        load_file_btn.setFont(regular_font)
-        header_layout.addWidget(load_file_btn)
+        header_layout.addLayout(title_layout)
 
         main_layout.addLayout(header_layout)
+
+        # File Tree and Run Button
+        file_tree_group = QGroupBox("Directories")
+        file_tree_layout = QVBoxLayout()
+
+        self.file_tree = QTreeWidget()
+        self.file_tree.setHeaderLabels(["Directories"])
+        self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.file_tree.itemClicked.connect(self.handle_item_clicked)
+        file_tree_layout.addWidget(self.file_tree)
+
+        # Populate file tree with the root directories
+        self.populate_file_tree()
+
+        # Run Button
+        self.run_button = QPushButton("Run")
+        self.run_button.setObjectName("runButton")
+        self.run_button.setEnabled(False)
+        self.run_button.clicked.connect(self.run_processing)
+        file_tree_layout.addWidget(self.run_button)
+
+        file_tree_group.setLayout(file_tree_layout)
+        main_layout.addWidget(file_tree_group)
 
         # Previews & Overview
         previews_overview_group = QGroupBox("Previews & Overview")
@@ -331,12 +339,12 @@ class MainWindow(QMainWindow):
         overview_layout = QVBoxLayout()
         overview_layout.setAlignment(Qt.AlignTop)
 
-        self.file_tree = QTreeWidget()
-        self.file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
-        self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        overview_layout.addWidget(self.file_tree)
+        self.processing_file_tree = QTreeWidget()
+        self.processing_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
+        self.processing_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.processing_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.processing_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        overview_layout.addWidget(self.processing_file_tree)
 
         overview_container = QWidget()
         overview_container.setLayout(overview_layout)
@@ -354,59 +362,79 @@ class MainWindow(QMainWindow):
 
         main_widget.setLayout(main_layout)
 
-    def initialize_file_tree(self):
-        self.file_tree.clear()
+    def populate_file_tree(self):
+        drives = self.get_drives()
+        for drive in drives:
+            drive_item = QTreeWidgetItem(self.file_tree, [drive])
+            drive_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+            drive_item.setExpanded(False)
+
+    def get_drives(self):
+        if sys.platform == "win32":
+            import string
+            drives = []
+            bitmask = os.sys.getwindowsversion().dwDriveType
+            for letter in string.ascii_uppercase:
+                if os.path.exists(f"{letter}:\\"):
+                    drives.append(f"{letter}:\\")
+            return drives
+        else:
+            return ["/"]
+
+    def handle_item_clicked(self, item, column):
+        path = self.get_full_path(item)
+        if os.path.isdir(path):
+            if self.is_input_directory_selected:
+                self.input_dir = path
+                self.update_run_button_state()
+                self.populate_input_files()
+            elif self.is_output_directory_selected:
+                self.selected_output_dir = path
+                self.update_run_button_state()
+
+    def get_full_path(self, item):
+        path = []
+        while item:
+            path.insert(0, item.text(0))
+            item = item.parent()
+        full_path = os.path.join(*path)
+        return full_path
+
+    def populate_input_files(self):
+        self.processing_file_tree.clear()
         self.file_status_items = {}
 
-        # Create parent items for Input Directory and Output Directory
-        if self.to_process:
-            input_dir = os.path.dirname(self.to_process[0])
-            self.input_dir_parent = QTreeWidgetItem(self.file_tree, [f"Input Directory: {input_dir}"])
-            self.input_dir_parent.setExpanded(True)
+        if self.input_dir:
+            input_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Input Directory: {self.input_dir}"])
+            input_dir_item.setExpanded(True)
 
-            # Group input files by their directories (only one directory in this case)
+            self.to_process = [
+                file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(self.input_dir, f"*{ext}"))
+            ]
+            if not self.to_process:
+                QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected input directory.")
+                return
+
             for file_path in self.to_process:
                 file_name = os.path.basename(file_path)
                 file_size = os.path.getsize(file_path) // 1024  # Size in KB
-                item = QTreeWidgetItem(self.input_dir_parent, [file_name, str(file_size), "0%"])
+                item = QTreeWidgetItem(input_dir_item, [file_name, str(file_size), "0%"])
                 progress_bar = QProgressBar()
                 progress_bar.setValue(0)
                 progress_bar.setMaximum(100)
-                self.file_tree.setItemWidget(item, 2, progress_bar)
+                self.processing_file_tree.setItemWidget(item, 2, progress_bar)
                 self.file_status_items[file_path] = (item, progress_bar)
 
-        self.output_dir_parent = QTreeWidgetItem(self.file_tree, [f"Output Directory: {self.output_dir}"])
-        self.output_dir_parent.setExpanded(True)
+        output_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Output Directory: {self.selected_output_dir}"])
+        output_dir_item.setExpanded(True)
 
-        self.start_processing()
+    def update_run_button_state(self):
+        if self.input_dir and self.selected_output_dir:
+            self.run_button.setEnabled(True)
+        else:
+            self.run_button.setEnabled(False)
 
-    def load_directory(self):
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if directory:
-            self.to_process = [
-                file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(directory, f"*{ext}"))
-            ]
-            if not self.to_process:
-                QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directory.")
-                return
-            self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
-            if not self.output_dir:
-                self.output_dir = os.path.join(directory, "processed")
-
-            self.initialize_file_tree()
-
-    def load_single_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Image File", "", "Image Files (*.lsm *.czi)")
-        if file_path:
-            self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
-            if not self.output_dir:
-                self.output_dir = DEFAULT_OUTPUT_DIR
-            self.to_process = [file_path]
-
-            # Initialize the file tree
-            self.initialize_file_tree()
-
-    def start_processing(self):
+    def run_processing(self):
         if not self.to_process:
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
@@ -420,7 +448,7 @@ class MainWindow(QMainWindow):
         self.current_file = self.to_process.pop(0)
 
         # Update the file tree selection
-        self.file_tree.setCurrentItem(None)
+        self.processing_file_tree.setCurrentItem(None)
 
         metadata = self.extract_lsm_metadata(self.current_file)
         if metadata:
@@ -456,13 +484,21 @@ class MainWindow(QMainWindow):
             worker = ImageProcessorWorker(
                 file_path=self.current_file,
                 reference_channel=reference_channel,
-                output_dir=self.output_dir,
+                output_dir=self.selected_output_dir,
                 signals=self.worker_signals,
                 channel_idx=channel_idx,
                 scaling_params=self.scaling_params
             )
             self.workers.append(worker)
             worker.start()
+
+    @property
+    def is_input_directory_selected(self):
+        return True  # Modify based on selection logic if needed
+
+    @property
+    def is_output_directory_selected(self):
+        return True  # Modify based on selection logic if needed
 
     def extract_lsm_metadata(self, file_path):
         try:
@@ -478,7 +514,6 @@ class MainWindow(QMainWindow):
                 )
                 resolution = lsm_meta.get('Resolution', '1.0')
                 color_channels = lsm_meta.get('Channel', [])
-
 
                 scaling_params = {
                     'xscale': Decimal(voxel_size[0]),
@@ -537,13 +572,13 @@ class MainWindow(QMainWindow):
                 processed_channels=self.processed_channels,
                 scaling_params=self.scaling_params,
                 current_file=self.current_file,
-                output_dir=self.output_dir,
+                output_dir=self.selected_output_dir,
                 signals=self.worker_signals
             )
             saver_worker.start()
             self.completed_files += 1
             if self.to_process:
-                self.start_processing()
+                self.run_processing()
             else:
                 QMessageBox.information(self, "Processing Complete", "All files have been processed!")
 
@@ -555,8 +590,8 @@ class MainWindow(QMainWindow):
         # Add the saved file to the Output Directory in the file tree
         file_name = os.path.basename(output_path)
         file_size = os.path.getsize(output_path) // 1024  # Size in KB
-        item = QTreeWidgetItem(self.output_dir_parent, [file_name, str(file_size), "Saved"])
-        self.file_tree.setItemWidget(item, 2, QLabel("Saved"))
+        item = QTreeWidgetItem(self.processing_file_tree, [file_name, str(file_size), "Saved"])
+        self.processing_file_tree.setItemWidget(item, 2, QLabel("Saved"))
         self.file_status_items[output_path] = (item, None)
 
     def show_error(self, message):
