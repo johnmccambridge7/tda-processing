@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog,
     QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
     QCheckBox, QLineEdit, QGridLayout, QMessageBox,
-    QGroupBox, QTabWidget, QSizePolicy, QTreeWidget, QTreeWidgetItem, QHeaderView
+    QGroupBox, QTabWidget, QSizePolicy, QTreeWidget, QTreeWidgetItem, QHeaderView,
+    QTreeWidgetItemIterator
 )
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
