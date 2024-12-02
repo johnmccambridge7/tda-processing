@@ -323,6 +323,7 @@ class MainWindow(QMainWindow):
 
         # Directory Selection Inputs
         input_directory_wrapper = QVBoxLayout()
+        input_directory_wrapper.setSpacing(5)  # Reduced spacing to make label closer to input field
         input_label = QLabel("Input Directory:")
         input_directory_wrapper.addWidget(input_label)
 
