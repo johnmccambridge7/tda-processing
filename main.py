@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
                 progress_bar.setProperty("complete", True)
                 progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
                 completed_label = QLabel("Done")
-                completed_label.setStyleSheet("color: #45a049; font-weight: bold;")
+                completed_label.setStyleSheet("color: #45a049;")
                 self.input_file_tree.setItemWidget(item, 2, completed_label)
 
     def update_preview(self, channel_idx, pixmap):
