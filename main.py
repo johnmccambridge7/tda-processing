@@ -413,7 +413,7 @@ class MainWindow(QMainWindow):
                     file_name = os.path.basename(file_path)
                     file_size = os.path.getsize(file_path) / (1024 * 1024)
                     formatted_size = f"{file_size:.2f} MB"
-                    file_item = QTreeWidgetItem(dir_item, [file_name, os.path.basename(os.path.dirname(file_path)), ""])
+                    file_item = QTreeWidgetItem(dir_item, [file_name, formatted_size, ""])
                     file_item.setToolTip(1, file_path)  # Full path as tooltip
                     progress_bar = QProgressBar()
                     progress_bar.setValue(0)
@@ -430,14 +430,13 @@ class MainWindow(QMainWindow):
         self.output_file_tree.clear()
         self.output_file_status_items = {}
 
-        if self.selected_output_dir:
-            # Create root directory item for output with dropdown
-            dir_name = os.path.basename(self.selected_output_dir)
+        for input_dir, output_dir in self.output_directories.items():
+            # Create root directory item for each output directory with dropdown
+            dir_name = os.path.basename(output_dir)
             root_item = QTreeWidgetItem(self.output_file_tree, [dir_name, "", ""])
             root_item.setExpanded(False)  # Start collapsed
             # Add a small arrow icon to indicate it's expandable
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-
 
     def handle_output_selection(self, input_dir, button):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
@@ -492,19 +491,36 @@ class MainWindow(QMainWindow):
         # Reset progress tracking
         self.total_progress = 0
 
+        # Determine the input directory for the current file
+        input_dir = self.get_input_directory_for_file(self.current_file)
+        if not input_dir:
+            self.show_error("Input directory for the current file not found.")
+            return
+
+        output_dir = self.output_directories.get(input_dir, self.selected_output_dir)
+        if not output_dir:
+            self.show_error("Output directory not set for the input directory.")
+            return
+
         # Start workers for each channel
         self.workers = []
         for channel_idx in range(3):
             worker = ImageProcessorWorker(
                 file_path=self.current_file,
                 reference_channel=reference_channel,
-                output_dir=self.selected_output_dir,
+                output_dir=output_dir,
                 signals=self.worker_signals,
                 channel_idx=channel_idx,
                 scaling_params=self.scaling_params
             )
             self.workers.append(worker)
             worker.start()
+
+    def get_input_directory_for_file(self, file_path):
+        for input_dir in self.input_directories:
+            if os.path.commonpath([input_dir, file_path]) == input_dir:
+                return input_dir
+        return None
 
     @property
     def is_input_directory_selected(self):
@@ -586,12 +602,23 @@ class MainWindow(QMainWindow):
     def worker_finished(self):
         self.workers_finished += 1
         if self.workers_finished == self.expected_total:
+            # Determine the input directory for the current file
+            input_dir = self.get_input_directory_for_file(self.current_file)
+            if not input_dir:
+                self.show_error("Input directory for the current file not found.")
+                return
+
+            output_dir = self.output_directories.get(input_dir, self.selected_output_dir)
+            if not output_dir:
+                self.show_error("Output directory not set for the input directory.")
+                return
+
             # Start the saving process in a separate thread
             saver_worker = ImageSaverWorker(
                 processed_channels=self.processed_channels,
                 scaling_params=self.scaling_params,
                 current_file=self.current_file,
-                output_dir=self.selected_output_dir,
+                output_dir=output_dir,
                 signals=self.worker_signals
             )
             saver_worker.start()
@@ -608,8 +635,21 @@ class MainWindow(QMainWindow):
         pass
 
     def handle_save_finished(self, output_path):
-        # Find the root item (there should only be one)
-        root = self.output_file_tree.topLevelItem(0)
+        # Find the root item for the corresponding output directory
+        output_dir = self.output_dir
+        for input_dir, out_dir in self.output_directories.items():
+            if out_dir == os.path.dirname(output_path):
+                output_dir = out_dir
+                break
+
+        # Find the root item for this output directory
+        root = None
+        for i in range(self.output_file_tree.topLevelItemCount()):
+            item = self.output_file_tree.topLevelItem(i)
+            if item.text(0) == os.path.basename(output_dir):
+                root = item
+                break
+
         if root:
             # Add the saved file under the root directory
             file_name = os.path.basename(output_path)
@@ -625,10 +665,10 @@ class MainWindow(QMainWindow):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory")
         if selected_dir and selected_dir not in self.input_directories:
             self.input_directories.append(selected_dir)
-            
+
             # Refresh the input files display
             self.populate_input_files()
-            
+
     def remove_input_directory(self, directory, item):
         if directory in self.input_directories:
             self.input_directories.remove(directory)
