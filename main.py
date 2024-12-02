@@ -415,7 +415,7 @@ class MainWindow(QMainWindow):
 
             # Only show Set Output button if directory doesn't have output set
             if input_dir not in self.directories_with_output:
-                set_output_button = QPushButton("Set Output")
+                set_output_button = QPushButton("Set Output Folder")
                 set_output_button.setStyleSheet("""
                     font-size: 10px; 
                     padding: 2px 8px;
