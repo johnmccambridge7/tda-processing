@@ -390,7 +390,6 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'processing_complete') or not self.processing_complete:
             # Create header item
             header_item = QTreeWidgetItem(self.input_file_tree)
-            header_item.setText(0, "Input Directories")
 
         for input_dir in self.input_directories:
             # Create directory item
