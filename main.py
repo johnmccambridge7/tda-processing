@@ -98,36 +98,31 @@ class ImageSaverWorker(Thread):
 
     def run(self):
         try:
-            # Get channel order, falling back to processed channels if not available
-            channel_order = self.scaling_params.get('channel_order', list(self.processed_channels.keys()))
+            # Get channel order from scaling params
+            channel_order = self.scaling_params.get('channel_order', [])
             if not channel_order:
-                self.signals.save_error.emit("Channel order not specified.")
-                return
-            print(1)
-            # Ensure channel_order is sorted based on MultiplexOrder (if available)
-            sorted_channels = sorted(channel_order, key=lambda x: x)
-
-            # Handle cases with fewer than three channels (e.g., duplicate for RGB)
-            if len(sorted_channels) == 2:
-                sorted_channels.append(sorted_channels[-1])  # Duplicate last channel
-            elif len(sorted_channels) < 2:
+                # Fallback to sequential order if no channel order specified
+                channel_order = list(range(len(self.processed_channels)))
+            
+            # Ensure we have enough channels
+            if len(channel_order) < 2:
                 self.signals.save_error.emit("Insufficient channels to create an RGB image.")
                 return
-            print(2)
-            # Map channels to RGB order (mCherry -> Red, GFP -> Green, Alexa647 -> Blue)
-            channel_to_rgb = {'GFP': 1, 'mCherry': 0, 'Alexa647': 2}  # Map names to RGB indices
-            rgb_order = [channel_to_rgb.get(channel, -1) for channel in sorted_channels]
 
-            # Validate and reorder processed channels into RGB order
-            if len(self.processed_channels) != len(sorted_channels):
+            # Handle cases with fewer than three channels
+            if len(channel_order) == 2:
+                channel_order.append(channel_order[-1])  # Duplicate last channel
+            
+            # Validate channel count
+            if len(self.processed_channels) != len(set(channel_order)):
                 self.signals.save_error.emit(
-                    f"Expected {len(sorted_channels)} channels but got {len(self.processed_channels)}.")
+                    f"Channel count mismatch: Expected {len(set(channel_order))} channels but got {len(self.processed_channels)}.")
                 return
-            print(3, sorted_channels)
-            # Collect processed channels and map them to RGB order
-            ordered_processed = [self.processed_channels[idx] for idx in sorted_channels]
+
+            # Create RGB image using the channel order from metadata
+            ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
             rgb_image = np.stack(
-                [ordered_processed[rgb_order.index(i)] if i in rgb_order else np.zeros_like(ordered_processed[0])
+                [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
             rgb_image = rgb_image.transpose((1, 2, 3, 0))  # Convert to ZYX(RGB)
