@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
             
             # Add run button to directory row if processing is not complete
             if not hasattr(self, 'processing_complete') or not self.processing_complete:
-                self.run_button = QPushButton("Select Output Dir")
+                self.run_button = QPushButton("Set Output Folder")
                 self.run_button.setObjectName("runButton")
                 self.run_button.setEnabled(True)
                 self.run_button.clicked.connect(self.handle_output_selection)
