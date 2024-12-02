@@ -29,7 +29,7 @@ def process_channel(channel, channel_idx, progress_callback, preview_callback, r
         reference_image = Image.fromarray(channel[reference]).convert("RGB")
         reference_qimage = QImage(reference_image.tobytes(), reference_image.size[0], reference_image.size[1],
                                   QImage.Format_RGB888)
-        reference_pixmap = QPixmap.fromImage(reference_qimage).scaled(200, 200, Qt.KeepAspectRatio)
+        reference_pixmap = QPixmap.fromImage(reference_qimage).scaled(180, 180, Qt.KeepAspectRatio)
 
         reference_callback(reference_pixmap)
 
@@ -46,7 +46,7 @@ def process_channel(channel, channel_idx, progress_callback, preview_callback, r
             preview_image = Image.fromarray(color_image).convert("RGB")
             preview_qimage = QImage(preview_image.tobytes(), preview_image.size[0], preview_image.size[1],
                                     QImage.Format_RGB888)
-            preview_pixmap = QPixmap.fromImage(preview_qimage).scaled(200, 200, Qt.KeepAspectRatio)
+            preview_pixmap = QPixmap.fromImage(preview_qimage).scaled(180, 180, Qt.KeepAspectRatio)
 
             preview_callback(preview_pixmap)
 
