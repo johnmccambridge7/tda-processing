@@ -432,10 +432,12 @@ class MainWindow(QMainWindow):
         self.output_file_status_items = {}
         
         if self.selected_output_dir:
-            # Create root directory item for output
+            # Create root directory item for output with dropdown
             dir_name = os.path.basename(self.selected_output_dir)
             root_item = QTreeWidgetItem(self.output_file_tree, [dir_name, "", ""])
-            root_item.setExpanded(True)
+            root_item.setExpanded(False)  # Start collapsed
+            # Add a small arrow icon to indicate it's expandable
+            root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
     def update_run_button_state(self):
         if hasattr(self, 'run_button') and self.run_button:
