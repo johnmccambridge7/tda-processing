@@ -102,7 +102,6 @@ class ImageSaverWorker(Thread):
             with TiffFile(self.current_file) as tif:
                 lsm_meta = tif.lsm_metadata
                 num_channels = lsm_meta.get('DimensionChannels', 3)
-
                 # Get channel colors and ordering from metadata
                 channel_colors = lsm_meta.get('ChannelColors', {}).get('Colors', [])
 
@@ -575,6 +574,7 @@ class MainWindow(QMainWindow):
         self.input_file_tree.setCurrentItem(None)
 
         metadata = self.extract_lsm_metadata(self.current_file)
+        print(metadata)
         if metadata:
             self.scaling_params.update(metadata)
 
@@ -651,31 +651,39 @@ class MainWindow(QMainWindow):
         return True  # Modify based on selection logic if needed
 
     def extract_lsm_metadata(self, file_path):
+        from decimal import Decimal, getcontext
+        getcontext().prec = 50  # Set precision to handle precise calculations
+
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
                 if lsm_meta is None:
                     return {}
 
-                # Extract voxel size
-                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0))  # Default to 1.0 if missing
-                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0))
-                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0))
+                # Extract voxel size in meters and convert to micrometers
+                voxel_size_x = Decimal(lsm_meta.get('VoxelSizeX', 1.0)) * Decimal(1e6)  # Convert to μm
+                voxel_size_y = Decimal(lsm_meta.get('VoxelSizeY', 1.0)) * Decimal(1e6)  # Convert to μm
+                voxel_size_z = Decimal(lsm_meta.get('VoxelSizeZ', 1.0)) * Decimal(1e6)  # Convert to μm
 
-                # Derive resolution if not explicitly available
-                resolution = (voxel_size_x + voxel_size_y + voxel_size_z) / 3  # Simple average
+                # Calculate resolution in pixels per micrometer
+                resolution_x = Decimal(1) / voxel_size_x if voxel_size_x > 0 else Decimal(0)
+                resolution_y = Decimal(1) / voxel_size_y if voxel_size_y > 0 else Decimal(0)
+                resolution_z = Decimal(1) / voxel_size_z if voxel_size_z > 0 else Decimal(0)
+
+                # Average resolution for a single value (optional)
+                resolution = (resolution_x + resolution_y + resolution_z) / 3
 
                 # Parse channel information to detect LSM device types
-                color_channels = lsm_meta.get('Tracks', [])
-                is_lsm510 = any(track.get('Name', '').lower().startswith('lsm510') for track in color_channels)
-                is_lsm880 = any(track.get('Name', '').lower().startswith('lsm880') for track in color_channels)
+                tracks = lsm_meta.get('Tracks', [])
+                is_lsm510 = any(track.get('Name', '').lower().startswith('lsm510') for track in tracks)
+                is_lsm880 = any(track.get('Name', '').lower().startswith('lsm880') for track in tracks)
 
                 # Create a dictionary for scaling parameters
                 scaling_params = {
-                    'xscale': Decimal(voxel_size_x),
-                    'yscale': Decimal(voxel_size_y),
-                    'zstep': Decimal(voxel_size_z),
-                    'resolution': Decimal(resolution),
+                    'xscale': voxel_size_x,
+                    'yscale': voxel_size_y,
+                    'zstep': voxel_size_z,
+                    'resolution': resolution,
                     'lsm510': 1 if is_lsm510 else 0,
                     'lsm880': 1 if is_lsm880 else 0
                 }
