@@ -325,43 +325,24 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
-        # Create grid layout for directory selection and file trees
+        # Create grid layout for file trees
         grid_layout = QGridLayout()
 
-        # Input Directories Selection at the top (row 0, spanning two columns)
-        input_directory_group = QGroupBox("Input Directories")
-        input_directory_layout = QVBoxLayout()
-        
-        # List to store input directories
-        self.input_directories = []
-        
-        # Directory list widget
-        self.directory_list = QTreeWidget()
-        self.directory_list.setHeaderLabels(["Directory Path", "Actions"])
-        self.directory_list.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.directory_list.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        
-        # Add Directory button
+        # Add Directory button at the top
         add_directory_layout = QHBoxLayout()
         self.browse_input_button = QPushButton("Add Directory")
         self.browse_input_button.clicked.connect(self.add_input_directory)
         add_directory_layout.addWidget(self.browse_input_button)
         add_directory_layout.addStretch()
-        
-        input_directory_layout.addWidget(self.directory_list)
-        input_directory_layout.addLayout(add_directory_layout)
-        input_directory_group.setLayout(input_directory_layout)
-        
-        # Add input directory group to grid (row 0, spanning two columns)
-        grid_layout.addWidget(input_directory_group, 0, 0, 1, 2)
+        grid_layout.addLayout(add_directory_layout, 0, 0, 1, 2)
 
-        # File Trees Layout (row 1)
+        # File Trees Layout
         input_file_tree_group = QGroupBox("Input")
         input_file_tree_layout = QVBoxLayout()
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
-        self.input_file_tree.setHeaderLabels(["File Name", "Size (MB)", ""])
+        self.input_file_tree.setHeaderLabels(["Name", "Path/Size", "Actions"])
         self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
@@ -402,44 +383,55 @@ class MainWindow(QMainWindow):
     def populate_input_files(self):
         self.input_file_tree.clear()
         self.file_status_items = {}
-        self.processing_complete = False  # Add state tracking
+        self.processing_complete = False
+        self.to_process = []
 
-        if self.input_directories:
-            for input_dir in self.input_directories:
-                # Create root directory item
-                dir_name = os.path.basename(input_dir)
-                root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
-                root_item.setExpanded(True)  # Expand by default
+        if not hasattr(self, 'processing_complete') or not self.processing_complete:
+            config_button = QPushButton("Set Output Folder")
+            config_button.setObjectName("runButton")
+            config_button.setEnabled(True)
+            config_button.clicked.connect(self.handle_output_selection)
             
-            # Add run button to directory row if processing is not complete
-            if not hasattr(self, 'processing_complete') or not self.processing_complete:
-                self.run_button = QPushButton("Set Output Folder")
-                self.run_button.setObjectName("runButton")
-                self.run_button.setEnabled(True)
-                self.run_button.clicked.connect(self.handle_output_selection)
-                self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
-            
-            # Find all compatible files from all directories
-            self.to_process = []
-            for input_dir in self.input_directories:
-                self.to_process.extend([
-                    file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(input_dir, f"*{ext}"))
-                ])
-            if not self.to_process:
-                QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected input directory.")
-                return
+            # Add config button to header
+            header_item = QTreeWidgetItem(self.input_file_tree)
+            header_item.setText(0, "Input Directories")
+            self.input_file_tree.setItemWidget(header_item, 2, config_button)
+            self.run_button = config_button
 
-            # Add files as children of the root item
-            for file_path in self.to_process:
-                file_name = os.path.basename(file_path)
-                file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
-                formatted_size = f"{file_size:.2f} MB"
-                item = QTreeWidgetItem(root_item, [file_name, formatted_size, ""])
-                progress_bar = QProgressBar()
-                progress_bar.setValue(0)
-                progress_bar.setMaximum(100)
-                self.input_file_tree.setItemWidget(item, 2, progress_bar)
-                self.file_status_items[file_path] = (item, progress_bar)
+        for input_dir in self.input_directories:
+            # Create directory item
+            dir_name = os.path.basename(input_dir)
+            dir_item = QTreeWidgetItem(self.input_file_tree)
+            dir_item.setText(0, dir_name)
+            dir_item.setText(1, input_dir)  # Full path in second column
+            
+            # Add remove button for directory
+            remove_button = QPushButton("Remove")
+            remove_button.clicked.connect(lambda d=input_dir, item=dir_item: self.remove_input_directory(d, item))
+            self.input_file_tree.setItemWidget(dir_item, 2, remove_button)
+            
+            # Find and add files for this directory
+            files = []
+            for ext in ACCEPTED_FILE_TYPES:
+                files.extend(glob.glob(os.path.join(input_dir, f"*{ext}")))
+            
+            if files:
+                self.to_process.extend(files)
+                for file_path in files:
+                    file_name = os.path.basename(file_path)
+                    file_size = os.path.getsize(file_path) / (1024 * 1024)
+                    formatted_size = f"{file_size:.2f} MB"
+                    file_item = QTreeWidgetItem(dir_item, [file_name, formatted_size, ""])
+                    progress_bar = QProgressBar()
+                    progress_bar.setValue(0)
+                    progress_bar.setMaximum(100)
+                    self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
+                    self.file_status_items[file_path] = (file_item, progress_bar)
+            
+            dir_item.setExpanded(True)
+
+        if not self.to_process:
+            QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directories.")
 
     def populate_output_files(self):
         self.output_file_tree.clear()
