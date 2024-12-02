@@ -442,7 +442,11 @@ class MainWindow(QMainWindow):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
         if selected_dir:
             self.output_directories[input_dir] = selected_dir
-            button.hide()  # Hide the Set Output button after selection
+            # Remove the button widget entirely
+            button_parent = button.parent()
+            if button_parent:
+                button_parent.layout().removeWidget(button)
+            button.deleteLater()  # Permanently delete the button
             self.populate_output_files()
             
             # Get files only from the selected input directory
