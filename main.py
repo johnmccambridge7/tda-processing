@@ -416,7 +416,12 @@ class MainWindow(QMainWindow):
             # Only show Set Output button if directory doesn't have output set
             if input_dir not in self.directories_with_output:
                 set_output_button = QPushButton("Set Output")
-                set_output_button.setStyleSheet("font-size: 10px; padding: 2px 8px;")  # Smaller font and padding
+                set_output_button.setStyleSheet("""
+                    font-size: 10px; 
+                    padding: 2px 8px;
+                    background-color: #FFA500;
+                    color: black;
+                """)  # Warning colors with smaller font and padding
                 set_output_button.clicked.connect(lambda _, d=input_dir: self.handle_output_selection(d))
                 self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
 
