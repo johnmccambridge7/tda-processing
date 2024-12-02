@@ -138,8 +138,6 @@ class ImageSaverWorker(Thread):
             # Add the saved file to the Output Directory in the file tree
             self.signals.save_finished.emit(output_path)
 
-            self.signals.save_finished.emit(output_path)
-
         except Exception as e:
             self.signals.save_error.emit(str(e))
 
