@@ -322,33 +322,8 @@ class MainWindow(QMainWindow):
 
         self.preview_labels = []
         self.reference_labels = []
-        for i in range(3):
-            channel_layout = QVBoxLayout()
-            preview_title = QLabel(f"Channel {i + 1} Preview:")
-            preview_title.setFont(QFont("SF Pro", 12))
-            preview_title.setAlignment(Qt.AlignCenter)
-            preview_label = QLabel()
-            preview_label.setFixedSize(200, 200)
-            preview_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
-            preview_label.setAlignment(Qt.AlignCenter)
-            self.preview_labels.append(preview_label)
-
-            reference_title = QLabel(f"Channel {i + 1} Reference:")
-            reference_title.setFont(QFont("SF Pro", 12))
-            reference_title.setAlignment(Qt.AlignCenter)
-            reference_label = QLabel()
-            reference_label.setFixedSize(200, 200)
-            reference_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
-            reference_label.setAlignment(Qt.AlignCenter)
-            self.reference_labels.append(reference_label)
-
-            channel_layout.addWidget(preview_title)
-            channel_layout.addWidget(preview_label)
-            channel_layout.addWidget(reference_title)
-            channel_layout.addWidget(reference_label)
-            previews_container = QWidget()
-            previews_container.setLayout(channel_layout)
-            previews_layout.addWidget(previews_container)
+        # Preview labels will be created dynamically when processing starts
+        self.previews_layout = previews_layout  # Store for later use
 
         previews_overview_layout.addLayout(previews_layout)
 
@@ -537,6 +512,44 @@ class MainWindow(QMainWindow):
             else:
                 QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directory.")
 
+    def create_preview_labels(self, num_channels):
+        # Clear existing preview layout
+        while self.previews_layout.count():
+            item = self.previews_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        self.preview_labels = []
+        self.reference_labels = []
+        
+        for i in range(num_channels):
+            channel_layout = QVBoxLayout()
+            preview_title = QLabel(f"Channel {i + 1} Preview:")
+            preview_title.setFont(QFont("SF Pro", 12))
+            preview_title.setAlignment(Qt.AlignCenter)
+            preview_label = QLabel()
+            preview_label.setFixedSize(200, 200)
+            preview_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
+            preview_label.setAlignment(Qt.AlignCenter)
+            self.preview_labels.append(preview_label)
+
+            reference_title = QLabel(f"Channel {i + 1} Reference:")
+            reference_title.setFont(QFont("SF Pro", 12))
+            reference_title.setAlignment(Qt.AlignCenter)
+            reference_label = QLabel()
+            reference_label.setFixedSize(200, 200)
+            reference_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
+            reference_label.setAlignment(Qt.AlignCenter)
+            self.reference_labels.append(reference_label)
+
+            channel_layout.addWidget(preview_title)
+            channel_layout.addWidget(preview_label)
+            channel_layout.addWidget(reference_title)
+            channel_layout.addWidget(reference_label)
+            previews_container = QWidget()
+            previews_container.setLayout(channel_layout)
+            self.previews_layout.addWidget(previews_container)
+
     def run_processing(self, selected_input_dir=None):
         if not self.to_process:
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
@@ -605,6 +618,9 @@ class MainWindow(QMainWindow):
         image_data = imread(self.current_file)
         num_channels = image_data.shape[1]
         self.expected_total = num_channels  # Update expected total
+        
+        # Create preview labels for the actual number of channels
+        self.create_preview_labels(num_channels)
 
         # Start workers for each channel
         self.workers = []
