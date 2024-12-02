@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
             QHeaderView::section {
                 background-color: #4A4A4A;
                 color: white;
-                padding: 8px;
+                padding: 4px 8px;
                 border: none;
                 border-right: 1px solid #555555;
                 font-weight: bold;
@@ -360,7 +360,7 @@ class MainWindow(QMainWindow):
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
-        self.input_file_tree.setHeaderLabels(["Name", "Path/Size", "Actions"])
+        self.input_file_tree.setHeaderLabels(["Name", "Path/Size", ""])
         self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
