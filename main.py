@@ -324,8 +324,6 @@ class MainWindow(QMainWindow):
         # Input Directory Selection
         input_directory_wrapper = QVBoxLayout()
         input_directory_wrapper.setSpacing(5)
-        input_label = QLabel("Input Directory:")
-        input_directory_wrapper.addWidget(input_label)
 
         input_field_layout = QHBoxLayout()
         self.input_dir_line_edit = QLineEdit()
@@ -357,8 +355,6 @@ class MainWindow(QMainWindow):
         # Output Directory Selection
         output_directory_wrapper = QVBoxLayout()
         output_directory_wrapper.setSpacing(5)
-        output_label = QLabel("Output Directory:")
-        output_directory_wrapper.addWidget(output_label)
 
         output_field_layout = QHBoxLayout()
         self.output_dir_line_edit = QLineEdit()
