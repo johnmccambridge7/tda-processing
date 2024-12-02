@@ -578,11 +578,9 @@ class MainWindow(QMainWindow):
             if progress_percentage >= 100:
                 progress_bar.setProperty("complete", True)
                 progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
-                completed_label = QLabel("Completed")
+                completed_label = QLabel("Done")
                 completed_label.setStyleSheet("color: #45a049; font-weight: bold;")
                 self.input_file_tree.setItemWidget(item, 2, completed_label)
-            else:
-                item.setText(2, f"{int(progress_percentage)}%")
 
     def update_preview(self, channel_idx, pixmap):
         if 0 <= channel_idx < len(self.preview_labels):
@@ -623,7 +621,6 @@ class MainWindow(QMainWindow):
         file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
         formatted_size = f"{file_size:.2f} MB"
         item = QTreeWidgetItem(self.output_file_tree, [file_name, formatted_size, "Saved"])
-        self.output_file_tree.setItemWidget(item, 2, QLabel("Saved"))
         self.output_file_status_items[output_path] = (item, None)
 
     def show_error(self, message):
