@@ -125,8 +125,9 @@ class ImageSaverWorker(Thread):
                 [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
-            rgb_image = rgb_image.transpose((1, 2, 3, 0))  # Convert to ZYX(RGB)
-
+            # Transpose to (Z, Y, X, RGB) order for ImageJ hyperstack
+            rgb_image = rgb_image.transpose((1, 2, 3, 0))
+            
             # Convert to uint8 for saving
             tiff = rgb_image.astype(np.uint8)
 
@@ -137,13 +138,17 @@ class ImageSaverWorker(Thread):
             resolution_x = float(self.scaling_params.get('resolution', '1.0'))
             resolution_y = float(self.scaling_params.get('resolution', '1.0'))
 
-            # Metadata for saving the image
+            # Metadata for ImageJ hyperstack
             image_metadata = {
-                'axes': 'ZYX',
-                'mode': 'color',
-                'unit': 'um',
-                'spacing': (voxel_size_x, voxel_size_y, voxel_size_z),
-                'resolution': (resolution_x, resolution_y)
+                'axes': 'ZYXC',  # Specify correct dimension order
+                'spacing': voxel_size_z,  # Z spacing in microns
+                'unit': 'micron',
+                'finterval': 1,
+                'fps': 1.0,
+                'channels': 3,  # RGB channels
+                'slices': tiff.shape[0],  # Z slices
+                'frames': 1,  # Single timepoint
+                'hyperstack': True
             }
 
             # Prepare output directory
@@ -154,13 +159,15 @@ class ImageSaverWorker(Thread):
             filename = f"{base_name}_PROCESSED.tiff"
             output_path = os.path.join(self.output_dir, filename)
 
-            # Save the image using tifffile
+            # Save as ImageJ hyperstack
             imwrite(
                 output_path,
                 tiff,
-                resolution=(resolution_x, resolution_y),
                 imagej=True,
-                metadata=image_metadata
+                resolution=(resolution_x, resolution_y),
+                metadata=image_metadata,
+                photometric='rgb',  # Specify RGB photometric interpretation
+                planarconfig='contig'  # Contiguous RGB channels
             )
 
             # Emit success signal
