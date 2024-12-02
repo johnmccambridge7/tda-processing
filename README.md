@@ -1,5 +1,5 @@
 
-# TDA Processing App 🔬
+# TDA Processing App
 
 <div align="center">
 
@@ -15,24 +15,24 @@
 
 </div>
 
-## 🌟 Overview
+## Overview
 
 TDA Processing App is a sophisticated yet user-friendly application designed for processing microscopy images, specifically optimized for `.lsm` and `.czi` file formats. Built with PyQt5 and powered by cutting-edge image processing algorithms, it streamlines the workflow of microscopy data analysis while maintaining scientific precision.
 
-## ✨ Key Features
+## Key Features
 
-- 🖥️ **Modern Interface**: Sleek, intuitive GUI built with PyQt5
-- 🚀 **High-Performance Processing**: Optimized algorithms for efficient image processing
-- 📦 **Batch Processing**: Handle multiple files simultaneously
-- 🎨 **Advanced Channel Processing**: 
+- **Modern Interface**: Sleek, intuitive GUI built with PyQt5
+- **High-Performance Processing**: Optimized algorithms for efficient image processing
+- **Batch Processing**: Handle multiple files simultaneously
+- **Advanced Channel Processing**: 
   - Intelligent histogram matching
   - Automated reference channel selection
   - Real-time preview capabilities
-- 📊 **Smart Metadata Handling**: Automatic extraction and utilization of image metadata
-- 📈 **Progress Tracking**: Detailed visual feedback on processing status
-- 🎯 **Precision Controls**: Fine-tuned scaling and processing parameters
+- **Smart Metadata Handling**: Automatic extraction and utilization of image metadata
+- **Progress Tracking**: Detailed visual feedback on processing status
+- **Precision Controls**: Fine-tuned scaling and processing parameters
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -59,7 +59,7 @@ TDA Processing App is a sophisticated yet user-friendly application designed for
    pip install -r requirements.txt
    ```
 
-## 📖 Documentation
+## Documentation
 
 ### Basic Usage
 
@@ -90,7 +90,7 @@ TDA Processing App is a sophisticated yet user-friendly application designed for
 - **Metadata Integration**: Automatic scaling and parameter adjustment based on image metadata
 - **Custom Output**: Flexible output options with configurable file naming and directory structure
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
 
@@ -100,7 +100,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - Bug Reports
 - Feature Requests
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 ```
@@ -119,23 +119,23 @@ Run the test suite:
 python -m pytest tests/
 ```
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - Dr. Penelope L. Tir - Project Lead
 - John L. McCambridge - Core Developer
 - The Scientific Imaging Community
 
-## 📬 Support
+## Support
 
-- 📧 Email: support@tdaprocessing.org
-- 💬 Issues: [GitHub Issues](https://github.com/yourusername/tda-processing-app/issues)
-- 📚 Wiki: [Project Wiki](https://github.com/yourusername/tda-processing-app/wiki)
+- Email: support@tdaprocessing.org
+- Issues: [GitHub Issues](https://github.com/yourusername/tda-processing-app/issues)
+- Wiki: [Project Wiki](https://github.com/yourusername/tda-processing-app/wiki)
 
 ---
 <div align="center">
-Made with ❤️ by the TDA Processing Team
+Made by the TDA Processing Team
 </div>
