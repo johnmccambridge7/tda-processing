@@ -126,12 +126,10 @@ class ImageSaverWorker(Thread):
             print(3, sorted_channels)
             # Collect processed channels and map them to RGB order
             ordered_processed = [self.processed_channels[idx] for idx in sorted_channels]
-            print(4)
             rgb_image = np.stack(
                 [ordered_processed[rgb_order.index(i)] if i in rgb_order else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
-            print(5)
             rgb_image = rgb_image.transpose((1, 2, 3, 0))  # Convert to ZYX(RGB)
 
             # Convert to uint8 for saving
@@ -688,6 +686,7 @@ class MainWindow(QMainWindow):
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
+                print(lsm_meta.get('ChannelColors'))
                 if lsm_meta is None:
                     return {}
 
@@ -706,11 +705,8 @@ class MainWindow(QMainWindow):
                 if not tracks:
                     return {}
 
-                sorted_tracks = sorted(tracks, key=lambda t: t.get('MultiplexOrder', 0))
-                channel_order = [track['Name'] for track in sorted_tracks]
-
                 # Get channel colors from metadata
-                channel_colors = lsm_meta.get('ChannelColors', [])
+                channel_colors = lsm_meta.get('ChannelColors', []).get('Colors', [])
                 if channel_colors:
                     # Map RGB values to channel indices
                     color_map = {
@@ -722,6 +718,7 @@ class MainWindow(QMainWindow):
                     # Create channel order based on colors
                     channel_order = []
                     for color in channel_colors:
+                        print(color, color_map)
                         rgb = tuple(color[:3])  # Take only RGB values, ignore alpha
                         if rgb in color_map:
                             channel_order.append(color_map[rgb])
