@@ -1,0 +1,558 @@
+import sys
+import os
+import glob
+import time
+import numpy as np
+from decimal import Decimal
+from threading import Thread
+
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog,
+    QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
+    QCheckBox, QLineEdit, QGridLayout, QMessageBox,
+    QGroupBox, QTabWidget, QSizePolicy, QTreeWidget, QTreeWidgetItem, QHeaderView
+)
+from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
+
+from tifffile import imwrite, imread, TiffFile
+
+from functions import process_channel
+from constants import (
+    WINDOW_TITLE, DEFAULT_OUTPUT_DIR, ACCEPTED_FILE_TYPES,
+    COPYRIGHT_TEXT
+)
+
+
+class WorkerSignals(QObject):
+    progress = pyqtSignal(int)
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    preview = pyqtSignal(int, QPixmap)  # Added channel index
+    reference = pyqtSignal(int, QPixmap)  # Added channel index
+    processed_data = pyqtSignal(int, np.ndarray)  # New signal for processed data
+
+
+class ImageProcessorWorker(Thread):
+    def __init__(self, file_path, reference_channel, output_dir, signals, channel_idx, scaling_params):
+        super().__init__()
+        self.file_path = file_path
+        self.reference_channel = reference_channel
+        self.output_dir = output_dir
+        self.signals = signals
+        self.processed_channels = {}
+        self.total_channels = 1  # Each worker handles one channel
+        self.total_work = self.get_total_work()
+        self.progress_value = 0
+        self.start_time = None
+        self.channel_idx = channel_idx
+        self.scaling_params = scaling_params
+
+    def get_total_work(self):
+        try:
+            image_data = imread(self.file_path)
+            return image_data.shape[0]  # Number of z-slices
+        except:
+            return 1
+
+    def run(self):
+        try:
+            self.start_time = time.time()
+            image_data = imread(self.file_path)
+            channel_data = image_data[:, self.channel_idx, :, :]
+
+            processed = process_channel(
+                channel=channel_data,
+                channel_idx=self.channel_idx,
+                progress_callback=self.update_progress,
+                preview_callback=lambda pixmap: self.signals.preview.emit(self.channel_idx, pixmap),
+                reference_callback=lambda pixmap: self.signals.reference.emit(self.channel_idx, pixmap),
+            )
+
+            self.processed_channels[self.channel_idx] = processed
+
+            # Emit the processed data instead of saving
+            self.signals.processed_data.emit(self.channel_idx, processed)
+
+            self.signals.finished.emit()
+
+        except Exception as e:
+            self.signals.error.emit(str(e))
+
+    def update_progress(self, value):
+        self.progress_value += value
+        self.signals.progress.emit(value)
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(WINDOW_TITLE)
+        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowIcon(QIcon('base-app/icon.png'))
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2E2E2E;
+            }
+            QLabel {
+                color: #FFFFFF;
+            }
+            QPushButton {
+                background-color: #6A5ACD;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                text-align: center;
+                text-decoration: none;
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #5A4ACD;
+            }
+            QProgressBar {
+                border-radius: 5px;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                width: 20px;
+            }
+            QCheckBox {
+                color: #FFFFFF;
+            }
+            QLineEdit {
+                padding: 5px;
+                border: 1px solid #CCCCCC;
+                border-radius: 3px;
+                background-color: #FFFFFF;
+            }
+            QGroupBox {
+                border: 1px solid #444444;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 3px 0 3px;
+                color: #FFFFFF;
+            }
+            QTreeWidget {
+                background-color: #3E3E3E;
+                color: #FFFFFF;
+                border: 1px solid #444444;
+                border-radius: 5px;
+            }
+            QTreeWidget::item {
+                padding: 5px;
+            }
+            QTreeWidget::item:selected {
+                background-color: #5A4ACD;
+            }
+        """)
+        self.output_dir = DEFAULT_OUTPUT_DIR
+        self.to_process = []
+        self.processed_channels = {}
+        self.completed_files = 0
+        self.init_ui()
+        self.total_progress = 0
+        self.expected_total = 0
+        self.scaling_params = {
+            'zstep': '1.0',
+            'xscale': Decimal('1.0'),
+            'yscale': Decimal('1.0'),
+            'resolution': Decimal('1.00'),
+            'lsm510': 0,
+            'lsm880': 0
+        }
+        self.file_status_items = {}
+
+    def init_ui(self):
+        # Load custom fonts
+        font_id1 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro.ttf'))
+        font_families1 = QFontDatabase.applicationFontFamilies(font_id1)
+        if font_families1:
+            self.setFont(QFont(font_families1[0]))
+
+        font_id2 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro-Regular.otf'))
+        font_families2 = QFontDatabase.applicationFontFamilies(font_id2)
+        if font_families2:
+            regular_font = QFont(font_families2[0])
+        else:
+            regular_font = QFont("SF Pro")
+
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = QVBoxLayout()
+
+        # Header
+        header_layout = QHBoxLayout()
+
+        # Left side: Title and instructions
+        left_layout = QVBoxLayout()
+        title_label = QLabel("TDA Processing App")
+        title_font = QFont("SF Pro", 24, QFont.Bold)
+        title_label.setFont(title_font)
+        left_layout.addWidget(title_label)
+
+        instructions = QLabel("Select an option to start processing your images:")
+        instructions_font = QFont("SF Pro", 14)
+        instructions.setFont(instructions_font)
+        left_layout.addWidget(instructions)
+
+        header_layout.addLayout(left_layout)
+
+        # Stretch to push buttons to the right
+        header_layout.addStretch()
+
+        # Right side: Buttons and "or" label
+        load_dir_btn = QPushButton("Browse Directory")
+        load_dir_btn.clicked.connect(self.load_directory)
+        load_dir_btn.setToolTip("Select a directory with image files to process.")
+        load_dir_btn.setFont(regular_font)
+        header_layout.addWidget(load_dir_btn)
+
+        # "or" label
+        or_label = QLabel("or")
+        or_label.setFont(QFont("SF Pro", 12))
+        or_label.setAlignment(Qt.AlignCenter)
+        or_label.setStyleSheet("color: #FFFFFF; margin: 0 10px;")
+        header_layout.addWidget(or_label)
+
+        load_file_btn = QPushButton("Load Image")
+        load_file_btn.clicked.connect(self.load_single_image)
+        load_file_btn.setToolTip("Select a single image file to process.")
+        load_file_btn.setFont(regular_font)
+        header_layout.addWidget(load_file_btn)
+
+        main_layout.addLayout(header_layout)
+
+        # Previews & Overview
+        previews_overview_group = QGroupBox("Previews & Overview")
+        previews_overview_layout = QHBoxLayout()
+
+        # Left side: Previews
+        previews_layout = QHBoxLayout()
+        previews_layout.setAlignment(Qt.AlignCenter)  # Center align the previews
+
+        self.preview_labels = []
+        self.reference_labels = []
+        for i in range(3):
+            channel_layout = QVBoxLayout()
+            preview_title = QLabel(f"Channel {i + 1} Preview:")
+            preview_title.setFont(QFont("SF Pro", 12))
+            preview_title.setAlignment(Qt.AlignCenter)
+            preview_label = QLabel()
+            preview_label.setFixedSize(200, 200)
+            preview_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
+            preview_label.setAlignment(Qt.AlignCenter)
+            self.preview_labels.append(preview_label)
+
+            reference_title = QLabel(f"Channel {i + 1} Reference:")
+            reference_title.setFont(QFont("SF Pro", 12))
+            reference_title.setAlignment(Qt.AlignCenter)
+            reference_label = QLabel()
+            reference_label.setFixedSize(200, 200)
+            reference_label.setStyleSheet("border: 1px solid #444444; border-radius: 5px;")
+            reference_label.setAlignment(Qt.AlignCenter)
+            self.reference_labels.append(reference_label)
+
+            channel_layout.addWidget(preview_title)
+            channel_layout.addWidget(preview_label)
+            channel_layout.addWidget(reference_title)
+            channel_layout.addWidget(reference_label)
+            previews_container = QWidget()
+            previews_container.setLayout(channel_layout)
+            previews_layout.addWidget(previews_container)
+
+        previews_layout.addStretch()
+        previews_overview_layout.addLayout(previews_layout)
+
+        # Right side: Overview (File Status)
+        overview_layout = QVBoxLayout()
+        overview_layout.setAlignment(Qt.AlignTop)
+
+        self.file_tree = QTreeWidget()
+        self.file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
+        self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        overview_layout.addWidget(self.file_tree)
+
+        overview_container = QWidget()
+        overview_container.setLayout(overview_layout)
+        previews_overview_layout.addWidget(overview_container)
+
+        previews_overview_group.setLayout(previews_overview_layout)
+        main_layout.addWidget(previews_overview_group)
+
+        # Footer
+        footer = QLabel(COPYRIGHT_TEXT)
+        footer.setAlignment(Qt.AlignCenter)
+        footer.setFont(QFont("SF Pro", 10))
+        footer.setStyleSheet("color: gray;")
+        main_layout.addWidget(footer)
+
+        main_widget.setLayout(main_layout)
+
+    def initialize_file_tree(self):
+        self.file_tree.clear()
+        self.file_status_items = {}
+
+        # Create parent items for Input Directory and Output Directory
+        if self.to_process:
+            input_dir = os.path.dirname(self.to_process[0])
+            self.input_dir_parent = QTreeWidgetItem(self.file_tree, [f"Input Directory: {input_dir}"])
+            self.input_dir_parent.setExpanded(True)
+
+            # Group input files by their directories (only one directory in this case)
+            for file_path in self.to_process:
+                file_name = os.path.basename(file_path)
+                file_size = os.path.getsize(file_path) // 1024  # Size in KB
+                item = QTreeWidgetItem(self.input_dir_parent, [file_name, str(file_size), "0%"])
+                progress_bar = QProgressBar()
+                progress_bar.setValue(0)
+                progress_bar.setMaximum(100)
+                self.file_tree.setItemWidget(item, 2, progress_bar)
+                self.file_status_items[file_path] = (item, progress_bar)
+
+        self.output_dir_parent = QTreeWidgetItem(self.file_tree, [f"Output Directory: {self.output_dir}"])
+        self.output_dir_parent.setExpanded(True)
+
+        self.start_processing()
+
+    def load_directory(self):
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        if directory:
+            self.to_process = [
+                file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(directory, f"*{ext}"))
+            ]
+            if not self.to_process:
+                QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directory.")
+                return
+            self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+            if not self.output_dir:
+                self.output_dir = os.path.join(directory, "processed")
+
+            self.initialize_file_tree()
+
+    def load_single_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Image File", "", "Image Files (*.lsm *.czi)")
+        if file_path:
+            self.output_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+            if not self.output_dir:
+                self.output_dir = DEFAULT_OUTPUT_DIR
+            self.to_process = [file_path]
+
+            # Initialize the file tree
+            self.initialize_file_tree()
+
+    def start_processing(self):
+        if not self.to_process:
+            QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
+            return
+
+        for label in self.preview_labels:
+            label.clear()
+
+        for label in self.reference_labels:
+            label.clear()
+
+        self.current_file = self.to_process.pop(0)
+
+        # Update the file tree selection
+        self.file_tree.setCurrentItem(None)
+
+        metadata = self.extract_lsm_metadata(self.current_file)
+        if metadata:
+            self.scaling_params.update(metadata)
+
+        reference_channel = self.select_reference_channel(self.current_file)
+        if reference_channel is None:
+            QMessageBox.warning(self, "Reference Channel Not Found", "Could not determine the reference channel for processing.")
+            return
+
+        # Initialize signals
+        self.worker_signals = WorkerSignals()
+        self.worker_signals.progress.connect(self.update_progress)
+        self.worker_signals.finished.connect(self.worker_finished)
+        self.worker_signals.error.connect(self.show_error)
+        self.worker_signals.preview.connect(self.update_preview)
+        self.worker_signals.reference.connect(self.update_reference)
+        self.worker_signals.processed_data.connect(self.collect_processed_data)
+
+        # Initialize tracking variables
+        self.processed_channels = {}
+        self.workers_finished = 0
+        self.expected_total = 3  # Number of channels
+
+        # Reset progress tracking
+        self.total_progress = 0
+
+        # Start workers for each channel
+        self.workers = []
+        for channel_idx in range(3):
+            worker = ImageProcessorWorker(
+                file_path=self.current_file,
+                reference_channel=reference_channel,
+                output_dir=self.output_dir,
+                signals=self.worker_signals,
+                channel_idx=channel_idx,
+                scaling_params=self.scaling_params
+            )
+            self.workers.append(worker)
+            worker.start()
+
+    def extract_lsm_metadata(self, file_path):
+        try:
+            with TiffFile(file_path) as tif:
+                lsm_meta = tif.lsm_metadata
+                if lsm_meta is None:
+                    return {}
+                # Parse voxel size and other metadata from lsm_meta
+                voxel_size = (
+                    lsm_meta.get('VoxelSizeX', '1.0'),
+                    lsm_meta.get('VoxelSizeY', '1.0'),
+                    lsm_meta.get('VoxelSizeZ', '1.0')
+                )
+                resolution = lsm_meta.get('Resolution', '1.0')
+                color_channels = lsm_meta.get('Channel', [])
+
+
+                scaling_params = {
+                    'xscale': Decimal(voxel_size[0]),
+                    'yscale': Decimal(voxel_size[1]),
+                    'zstep': voxel_size[2],
+                    'resolution': Decimal(resolution),
+                    'lsm510': 1 if any('LSM510' in ch.get('Mode', '') for ch in color_channels) else 0,
+                    'lsm880': 1 if any('LSM880' in ch.get('Mode', '') for ch in color_channels) else 0
+                }
+                return scaling_params
+        except Exception as e:
+            self.show_error(f"Error extracting metadata: {e}")
+            return {}
+
+    def select_reference_channel(self, file_path):
+        image_data = imread(file_path)
+        channels = image_data.shape[1]
+        snr_values = []
+        for channel in range(channels):
+            mean = np.mean(image_data[:, channel, :, :])
+            std = np.std(image_data[:, channel, :, :])
+            snr = 10 * np.log10(mean / std) if std != 0 else 0
+            snr_values.append(snr)
+        reference_channel = np.argmax(snr_values)
+        return reference_channel
+
+    def update_progress(self, value):
+        self.total_progress += value
+        if self.expected_total > 0:
+            total_work = self.workers[0].total_work * self.expected_total
+            progress_percentage = (self.total_progress / total_work) * 100
+            progress_percentage = min(progress_percentage, 100)
+
+        # Update the file tree progress
+        if self.current_file in self.file_status_items:
+            item, progress_bar = self.file_status_items[self.current_file]
+            progress_bar.setValue(int(progress_percentage))
+            item.setText(2, f"{int(progress_percentage)}%")
+
+    def update_preview(self, channel_idx, pixmap):
+        if 0 <= channel_idx < len(self.preview_labels):
+            self.preview_labels[channel_idx].setPixmap(pixmap)
+
+    def update_reference(self, channel_idx, pixmap):
+        if 0 <= channel_idx < len(self.reference_labels):
+            self.reference_labels[channel_idx].setPixmap(pixmap)
+
+    def collect_processed_data(self, channel_idx, data):
+        self.processed_channels[channel_idx] = data
+
+    def worker_finished(self):
+        self.workers_finished += 1
+        if self.workers_finished == self.expected_total:
+            self.save_combined_image()
+            self.completed_files += 1
+            if self.to_process:
+                self.start_processing()
+            else:
+                QMessageBox.information(self, "Processing Complete", "All files have been processed!")
+
+    def save_combined_image(self):
+        if len(self.processed_channels) != 3:
+            return
+
+        # Determine ordering based on lsm510 and lsm880 flags
+        ordering = list(range(len(self.processed_channels.keys())))
+        if self.scaling_params.get('lsm510', 0):
+            ordering[0], ordering[1] = ordering[1], ordering[0]
+        elif self.scaling_params.get('lsm880', 0):
+            ordering[0], ordering[2] = ordering[2], ordering[0]
+
+        # Stack the processed channels based on the ordering
+        new_image = np.array([self.processed_channels[x] for x in ordering])
+        new_image = new_image.transpose((1, 0, 2, 3))
+
+        tiff = np.array(new_image).astype(np.uint8)
+
+        image_metadata = {
+            'axes': 'ZCYX',
+            'mode': 'color',
+            'unit': 'um',
+            'spacing': self.scaling_params.get('zstep', '1.0')
+        }
+
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        base_name = os.path.splitext(os.path.basename(self.current_file))[0]
+        filename = f"{base_name}_PROCESSED.tiff"
+        output_path = os.path.join(self.output_dir, filename)
+
+        imwrite(
+            output_path,
+            tiff,
+            resolution=(float(self.scaling_params.get('resolution', '1.0')), float(self.scaling_params.get('resolution', '1.0'))),
+            imagej=True,
+            metadata=image_metadata
+        )
+
+        # Add the saved file to the Output Directory in the file tree
+        self.add_output_file(output_path)
+
+        self.processed_channels = {}
+
+    def add_output_file(self, output_path):
+        file_name = os.path.basename(output_path)
+        file_size = os.path.getsize(output_path) // 1024  # Size in KB
+        item = QTreeWidgetItem(self.output_dir_parent, [file_name, str(file_size), "Saved"])
+        self.file_tree.setItemWidget(item, 2, QLabel("Saved"))
+        self.file_status_items[output_path] = (item, None)
+
+    def show_error(self, message):
+        QMessageBox.critical(self, "Error", message)
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    # Load custom fonts before creating the main window
+    font_id1 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro.ttf'))
+    font_families1 = QFontDatabase.applicationFontFamilies(font_id1)
+    if font_families1:
+        app.setFont(QFont(font_families1[0]))
+
+    font_id2 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro-Regular.otf'))
+    font_families2 = QFontDatabase.applicationFontFamilies(font_id2)
+    if font_families2:
+        regular_font = QFont(font_families2[0])
+    else:
+        regular_font = QFont("SF Pro")
+
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
