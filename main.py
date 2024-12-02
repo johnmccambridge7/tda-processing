@@ -234,6 +234,7 @@ class MainWindow(QMainWindow):
             'lsm880': 0
         }
         self.file_status_items = {}
+        self.output_file_status_items = {}
 
     def init_ui(self):
         # Load custom fonts
@@ -313,15 +314,14 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
-        # Right side: Overview (File Status)
-        overview_layout = QVBoxLayout()
-        overview_layout.setAlignment(Qt.AlignTop)
+        # Right side: File Trees
+        file_trees_layout = QHBoxLayout()
 
-        # File Tree Group
-        file_tree_group = QGroupBox()
-        file_tree_layout = QVBoxLayout()
+        # Input File Tree
+        input_file_tree_group = QGroupBox("Input Files")
+        input_file_tree_layout = QVBoxLayout()
 
-        # Directory Selection Inputs
+        # Input Directory Selection
         input_directory_wrapper = QVBoxLayout()
         input_directory_wrapper.setSpacing(5)
         input_label = QLabel("Input Directory:")
@@ -337,8 +337,24 @@ class MainWindow(QMainWindow):
         input_field_layout.addWidget(self.input_dir_line_edit)
         input_field_layout.addWidget(self.browse_input_button)
         input_directory_wrapper.addLayout(input_field_layout)
-        file_tree_layout.addLayout(input_directory_wrapper)
+        input_file_tree_layout.addLayout(input_directory_wrapper)
 
+        # Input File Tree Widget
+        self.input_file_tree = QTreeWidget()
+        self.input_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
+        self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        input_file_tree_layout.addWidget(self.input_file_tree)
+
+        input_file_tree_group.setLayout(input_file_tree_layout)
+        file_trees_layout.addWidget(input_file_tree_group)
+
+        # Output File Tree
+        output_file_tree_group = QGroupBox("Output Files")
+        output_file_tree_layout = QVBoxLayout()
+
+        # Output Directory Selection
         output_directory_wrapper = QVBoxLayout()
         output_directory_wrapper.setSpacing(5)
         output_label = QLabel("Output Directory:")
@@ -354,31 +370,30 @@ class MainWindow(QMainWindow):
         output_field_layout.addWidget(self.output_dir_line_edit)
         output_field_layout.addWidget(self.browse_output_button)
         output_directory_wrapper.addLayout(output_field_layout)
-        file_tree_layout.addLayout(output_directory_wrapper)
+        output_file_tree_layout.addLayout(output_directory_wrapper)
+
+        # Output File Tree Widget
+        self.output_file_tree = QTreeWidget()
+        self.output_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Status"])
+        self.output_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.output_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.output_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        output_file_tree_layout.addWidget(self.output_file_tree)
+
+        output_file_tree_group.setLayout(output_file_tree_layout)
+        file_trees_layout.addWidget(output_file_tree_group)
+
+        previews_overview_layout.addLayout(file_trees_layout)
+
+        previews_overview_group.setLayout(previews_overview_layout)
+        main_layout.addWidget(previews_overview_group)
 
         # Run Button
         self.run_button = QPushButton("Run")
         self.run_button.setObjectName("runButton")
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_processing)
-
-        file_tree_group.setLayout(file_tree_layout)
-        overview_layout.addWidget(file_tree_group)
-
-        self.processing_file_tree = QTreeWidget()
-        self.processing_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
-        self.processing_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.processing_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.processing_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        overview_layout.addWidget(self.processing_file_tree)
-        overview_layout.addWidget(self.run_button)
-
-        overview_container = QWidget()
-        overview_container.setLayout(overview_layout)
-        previews_overview_layout.addWidget(overview_container)
-
-        previews_overview_group.setLayout(previews_overview_layout)
-        main_layout.addWidget(previews_overview_group)
+        main_layout.addWidget(self.run_button)
 
         # Footer
         footer = QLabel(COPYRIGHT_TEXT)
@@ -389,73 +404,11 @@ class MainWindow(QMainWindow):
 
         main_widget.setLayout(main_layout)
 
-    def populate_file_tree(self):
-        # Add directory selectors as top-level items
-        input_dir_item = QTreeWidgetItem(self.processing_file_tree, ["Input Directory"])
-        input_dir_item.setData(0, Qt.UserRole, "input")
-        input_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-        input_dir_item.setExpanded(False)
-
-        output_dir_item = QTreeWidgetItem(self.processing_file_tree, ["Output Directory"])
-        output_dir_item.setData(0, Qt.UserRole, "output")
-        output_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-        output_dir_item.setExpanded(False)
-
-        # Populate file tree with the root directories
-        drives = self.get_drives()
-        for drive in drives:
-            drive_item = QTreeWidgetItem(self.processing_file_tree, [drive])
-            drive_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-            drive_item.setExpanded(False)
-
-    def get_drives(self):
-        if sys.platform == "win32":
-            import string
-            drives = []
-            for letter in string.ascii_uppercase:
-                if os.path.exists(f"{letter}:\\"):
-                    drives.append(f"{letter}:\\")
-            return drives
-        else:
-            return ["/"]
-
-    def handle_item_clicked(self, item, column):
-        role = item.data(0, Qt.UserRole)
-        path = self.get_full_path(item)
-
-        if role == "input":
-            selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory", self.input_dir or "")
-            if selected_dir:
-                self.input_dir = selected_dir
-                self.input_dir_line_edit.setText(selected_dir)
-                self.update_run_button_state()
-                self.populate_input_files()
-        elif role == "output":
-            selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
-            if selected_dir:
-                self.selected_output_dir = selected_dir
-                self.output_dir_line_edit.setText(selected_dir)
-                self.update_run_button_state()
-        else:
-            # Handle other directory clicks if necessary
-            pass
-
-    def get_full_path(self, item):
-        path = []
-        while item:
-            path.insert(0, item.text(0))
-            item = item.parent()
-        full_path = os.path.join(*path)
-        return full_path
-
     def populate_input_files(self):
-        self.processing_file_tree.clear()
+        self.input_file_tree.clear()
         self.file_status_items = {}
 
         if self.input_dir:
-            input_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Input Directory: {self.input_dir}"])
-            input_dir_item.setExpanded(True)
-
             self.to_process = [
                 file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(self.input_dir, f"*{ext}"))
             ]
@@ -466,16 +419,16 @@ class MainWindow(QMainWindow):
             for file_path in self.to_process:
                 file_name = os.path.basename(file_path)
                 file_size = os.path.getsize(file_path) // 1024  # Size in KB
-                item = QTreeWidgetItem(input_dir_item, [file_name, str(file_size), "0%"])
+                item = QTreeWidgetItem(self.input_file_tree, [file_name, str(file_size), "0%"])
                 progress_bar = QProgressBar()
                 progress_bar.setValue(0)
                 progress_bar.setMaximum(100)
-                self.processing_file_tree.setItemWidget(item, 2, progress_bar)
+                self.input_file_tree.setItemWidget(item, 2, progress_bar)
                 self.file_status_items[file_path] = (item, progress_bar)
 
-        if self.selected_output_dir:
-            output_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Output Directory: {self.selected_output_dir}"])
-            output_dir_item.setExpanded(True)
+    def populate_output_files(self):
+        self.output_file_tree.clear()
+        self.output_file_status_items = {}
 
     def update_run_button_state(self):
         if self.input_dir and self.selected_output_dir:
@@ -496,8 +449,8 @@ class MainWindow(QMainWindow):
 
         self.current_file = self.to_process.pop(0)
 
-        # Update the file tree selection
-        self.processing_file_tree.setCurrentItem(None)
+        # Update the input file tree selection
+        self.input_file_tree.setCurrentItem(None)
 
         metadata = self.extract_lsm_metadata(self.current_file)
         if metadata:
@@ -596,7 +549,7 @@ class MainWindow(QMainWindow):
             progress_percentage = (self.total_progress / total_work) * 100
             progress_percentage = min(progress_percentage, 100)
 
-        # Update the file tree progress
+        # Update the input file tree progress
         if self.current_file in self.file_status_items:
             item, progress_bar = self.file_status_items[self.current_file]
             progress_bar.setValue(int(progress_percentage))
@@ -636,12 +589,12 @@ class MainWindow(QMainWindow):
         pass
 
     def handle_save_finished(self, output_path):
-        # Add the saved file to the Output Directory in the file tree
+        # Add the saved file to the Output Directory in the output file tree
         file_name = os.path.basename(output_path)
         file_size = os.path.getsize(output_path) // 1024  # Size in KB
-        item = QTreeWidgetItem(self.processing_file_tree, [file_name, str(file_size), "Saved"])
-        self.processing_file_tree.setItemWidget(item, 2, QLabel("Saved"))
-        self.file_status_items[output_path] = (item, None)
+        item = QTreeWidgetItem(self.output_file_tree, [file_name, str(file_size), "Saved"])
+        self.output_file_tree.setItemWidget(item, 2, QLabel("Saved"))
+        self.output_file_status_items[output_path] = (item, None)
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
@@ -660,6 +613,7 @@ class MainWindow(QMainWindow):
             self.selected_output_dir = selected_dir
             self.output_dir_line_edit.setText(selected_dir)
             self.update_run_button_state()
+            self.populate_output_files()
 
 
 def main():
