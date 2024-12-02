@@ -383,13 +383,6 @@ class MainWindow(QMainWindow):
         previews_overview_group.setLayout(previews_overview_layout)
         main_layout.addWidget(previews_overview_group)
 
-        # Run Button
-        self.run_button = QPushButton("Run")
-        self.run_button.setObjectName("runButton")
-        self.run_button.setEnabled(False)
-        self.run_button.clicked.connect(self.run_processing)
-        main_layout.addWidget(self.run_button)
-
         # Footer
         footer = QLabel(COPYRIGHT_TEXT)
         footer.setAlignment(Qt.AlignCenter)
@@ -422,12 +415,19 @@ class MainWindow(QMainWindow):
                 file_name = os.path.basename(file_path)
                 file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
                 formatted_size = f"{file_size:.2f} MB"
-                item = QTreeWidgetItem(root_item, [file_name, formatted_size, "0%"])
-                progress_bar = QProgressBar()
-                progress_bar.setValue(0)
-                progress_bar.setMaximum(100)
-                self.input_file_tree.setItemWidget(item, 2, progress_bar)
-                self.file_status_items[file_path] = (item, progress_bar)
+                item = QTreeWidgetItem(root_item, [file_name, formatted_size, ""])
+                if file_path == self.to_process[0]:  # First file gets the run button
+                    self.run_button = QPushButton("Run")
+                    self.run_button.setObjectName("runButton")
+                    self.run_button.setEnabled(True)
+                    self.run_button.clicked.connect(self.run_processing)
+                    self.input_file_tree.setItemWidget(item, 2, self.run_button)
+                else:
+                    progress_bar = QProgressBar()
+                    progress_bar.setValue(0)
+                    progress_bar.setMaximum(100)
+                    self.input_file_tree.setItemWidget(item, 2, progress_bar)
+                self.file_status_items[file_path] = (item, progress_bar if file_path != self.to_process[0] else None)
 
     def populate_output_files(self):
         self.output_file_tree.clear()
