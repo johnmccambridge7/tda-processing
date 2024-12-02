@@ -318,12 +318,12 @@ class MainWindow(QMainWindow):
         overview_layout.setAlignment(Qt.AlignTop)
 
         # File Tree Group
-        file_tree_group = QGroupBox("Directories")
+        file_tree_group = QGroupBox("Load Data")
         file_tree_layout = QVBoxLayout()
 
         # Directory Selection Inputs
         input_directory_wrapper = QVBoxLayout()
-        input_directory_wrapper.setSpacing(5)  # Reduced spacing to make label closer to input field
+        input_directory_wrapper.setSpacing(5)
         input_label = QLabel("Input Directory:")
         input_directory_wrapper.addWidget(input_label)
 
@@ -339,6 +339,7 @@ class MainWindow(QMainWindow):
         file_tree_layout.addLayout(input_directory_wrapper)
 
         output_directory_wrapper = QVBoxLayout()
+        output_directory_wrapper.setSpacing(5)
         output_label = QLabel("Output Directory:")
         output_directory_wrapper.addWidget(output_label)
 
