@@ -214,7 +214,6 @@ class MainWindow(QMainWindow):
                 background-color: #6A5ACD;
                 font-size: 12px;
                 padding: 4px 16px;
-                transition: all 0.3s ease;
             }
             QPushButton#runButton:disabled {
                 background-color: #6A5ACD;
