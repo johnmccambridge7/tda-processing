@@ -325,12 +325,6 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
-        # Right side: File Trees
-        file_trees_layout = QHBoxLayout()
-
-        input_file_tree_group = QGroupBox("Input")
-        input_file_tree_layout = QVBoxLayout()
-
         # Input Directory Selection
         input_directory_wrapper = QVBoxLayout()
         input_directory_wrapper.setSpacing(5)
@@ -345,7 +339,14 @@ class MainWindow(QMainWindow):
         input_field_layout.addWidget(self.input_dir_line_edit)
         input_field_layout.addWidget(self.browse_input_button)
         input_directory_wrapper.addLayout(input_field_layout)
-        input_file_tree_layout.addLayout(input_directory_wrapper)
+        previews_overview_layout.addLayout(input_directory_wrapper)
+
+        # Right side: File Trees
+        file_trees_layout = QHBoxLayout()
+
+        input_file_tree_group = QGroupBox("Input")
+        input_file_tree_layout = QVBoxLayout()
+
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
