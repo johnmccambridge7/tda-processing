@@ -151,6 +151,8 @@ class MainWindow(QMainWindow):
         self.input_directories = []  # Initialize input_directories list
         self.output_directories = {}  # Dictionary to map input directories to their output directories
         self.directories_with_output = set()  # Track which directories have output set
+        self.file_progress = {}  # Dictionary to store progress for each file
+        self.output_files = {}  # Dictionary to store output files for each directory
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2E2E2E;
@@ -387,6 +389,7 @@ class MainWindow(QMainWindow):
         self.file_status_items = {}
         self.processing_complete = False
         self.to_process = []
+        saved_progress = self.file_progress.copy()  # Save current progress
 
         for input_dir in self.input_directories:
             # Create directory item
@@ -416,11 +419,16 @@ class MainWindow(QMainWindow):
                     formatted_size = f"{file_size:.2f} MB"
                     file_item = QTreeWidgetItem(dir_item, [file_name, formatted_size, ""])
                     file_item.setToolTip(1, file_path)  # Full path as tooltip
-                    progress_bar = QProgressBar()
-                    progress_bar.setValue(0)
-                    progress_bar.setMaximum(100)
-                    self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
-                    self.file_status_items[file_path] = (file_item, progress_bar)
+                    if file_path in saved_progress and saved_progress[file_path] >= 100:
+                        completed_label = QLabel("Done")
+                        completed_label.setStyleSheet("color: #45a049;")
+                        self.input_file_tree.setItemWidget(file_item, 2, completed_label)
+                    else:
+                        progress_bar = QProgressBar()
+                        progress_bar.setValue(saved_progress.get(file_path, 0))
+                        progress_bar.setMaximum(100)
+                        self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
+                    self.file_status_items[file_path] = (file_item, progress_bar if file_path not in saved_progress or saved_progress[file_path] < 100 else None)
 
             dir_item.setExpanded(True)
 
@@ -436,8 +444,17 @@ class MainWindow(QMainWindow):
             dir_name = os.path.basename(output_dir)
             root_item = QTreeWidgetItem(self.output_file_tree, [dir_name, "", ""])
             root_item.setExpanded(False)  # Start collapsed
-            # Add a small arrow icon to indicate it's expandable
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+
+            # Restore any saved output files for this directory
+            if output_dir in self.output_files:
+                for output_path in self.output_files[output_dir]:
+                    if os.path.exists(output_path):  # Verify file still exists
+                        file_name = os.path.basename(output_path)
+                        file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
+                        formatted_size = f"{file_size:.2f} MB"
+                        item = QTreeWidgetItem(root_item, [file_name, formatted_size, "Saved"])
+                        self.output_file_status_items[output_path] = (item, None)
 
     def handle_output_selection(self, input_dir):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
@@ -597,6 +614,9 @@ class MainWindow(QMainWindow):
             progress_percentage = (self.total_progress / total_work) * 100
             progress_percentage = min(progress_percentage, 100)
 
+        # Store progress in the file_progress dictionary
+        self.file_progress[self.current_file] = progress_percentage
+
         # Update the input file tree progress
         if self.current_file in self.file_status_items:
             item, progress_bar = self.file_status_items[self.current_file]
@@ -661,6 +681,11 @@ class MainWindow(QMainWindow):
             if out_dir == os.path.dirname(output_path):
                 output_dir = out_dir
                 break
+
+        # Store the output file information
+        if output_dir not in self.output_files:
+            self.output_files[output_dir] = []
+        self.output_files[output_dir].append(output_path)
 
         # Find the root item for this output directory
         root = None
