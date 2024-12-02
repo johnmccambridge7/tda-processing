@@ -98,19 +98,25 @@ class ImageSaverWorker(Thread):
 
     def run(self):
         try:
-            if len(self.processed_channels) != 3:
-                self.signals.save_error.emit("Incomplete channel data for saving.")
+            # Get number of channels from metadata
+            with TiffFile(self.current_file) as tif:
+                lsm_meta = tif.lsm_metadata
+                num_channels = lsm_meta.get('DimensionChannels', 3)
+                
+                # Get channel colors and ordering from metadata
+                channel_colors = lsm_meta.get('ChannelColors', {}).get('Colors', [])
+                
+            if len(self.processed_channels) != num_channels:
+                self.signals.save_error.emit(f"Expected {num_channels} channels but got {len(self.processed_channels)}")
                 return
 
-            # Determine ordering based on lsm510 and lsm880 flags
-            ordering = list(range(len(self.processed_channels.keys())))
-            if self.scaling_params.get('lsm510', 0):
-                ordering[0], ordering[1] = ordering[1], ordering[0]
-            elif self.scaling_params.get('lsm880', 0):
-                ordering[0], ordering[2] = ordering[2], ordering[0]
+            # Create ordered channel list based on metadata colors
+            ordered_channels = []
+            for i in range(num_channels):
+                ordered_channels.append(self.processed_channels[i])
 
-            # Stack the processed channels based on the ordering
-            new_image = np.array([self.processed_channels[x] for x in ordering])
+            # Stack the processed channels
+            new_image = np.array(ordered_channels)
             new_image = new_image.transpose((1, 0, 2, 3))
 
             tiff = np.array(new_image).astype(np.uint8)
