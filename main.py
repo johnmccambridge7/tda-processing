@@ -396,6 +396,7 @@ class MainWindow(QMainWindow):
 
             # Add set output button for directory
             set_output_button = QPushButton("Set Output")
+            set_output_button.setStyleSheet("font-size: 10px; padding: 2px 8px;")  # Smaller font and padding
             set_output_button.clicked.connect(self.handle_output_selection)
             self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
 
