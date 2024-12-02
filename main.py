@@ -404,7 +404,8 @@ class MainWindow(QMainWindow):
             dir_name = os.path.basename(input_dir)
             dir_item = QTreeWidgetItem(self.input_file_tree)
             dir_item.setText(0, dir_name)
-            dir_item.setText(1, input_dir)  # Full path in second column
+            dir_item.setText(1, os.path.basename(os.path.dirname(input_dir)))  # Show parent folder name
+            dir_item.setToolTip(1, input_dir)  # Full path as tooltip
             
             # Add remove button for directory
             remove_button = QPushButton("Remove")
@@ -422,7 +423,8 @@ class MainWindow(QMainWindow):
                     file_name = os.path.basename(file_path)
                     file_size = os.path.getsize(file_path) / (1024 * 1024)
                     formatted_size = f"{file_size:.2f} MB"
-                    file_item = QTreeWidgetItem(dir_item, [file_name, formatted_size, ""])
+                    file_item = QTreeWidgetItem(dir_item, [file_name, os.path.basename(os.path.dirname(file_path)), ""])
+                    file_item.setToolTip(1, file_path)  # Full path as tooltip
                     progress_bar = QProgressBar()
                     progress_bar.setValue(0)
                     progress_bar.setMaximum(100)
