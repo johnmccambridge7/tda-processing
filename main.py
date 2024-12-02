@@ -326,10 +326,10 @@ class MainWindow(QMainWindow):
         previews_overview_layout.addLayout(previews_layout)
 
 
-        # Main content grid
-        content_grid = QGridLayout()
+        # Create a vertical layout for the browse section and trees
+        browse_and_trees_layout = QVBoxLayout()
         
-        # Row 0: Input Directory Selection
+        # Input Directory Selection at the top
         input_directory_wrapper = QHBoxLayout()
         input_directory_wrapper.setSpacing(5)
         self.input_dir_line_edit = QLineEdit()
@@ -341,12 +341,10 @@ class MainWindow(QMainWindow):
         input_directory_wrapper.addWidget(self.input_dir_line_edit)
         input_directory_wrapper.addWidget(self.browse_input_button)
         
-        # Add input directory selection to grid
-        input_dir_widget = QWidget()
-        input_dir_widget.setLayout(input_directory_wrapper)
-        content_grid.addWidget(input_dir_widget, 0, 0, 1, 2)  # Row 0, Col 0, Span 1 row, 2 cols
+        # Add input directory selection to the vertical layout
+        browse_and_trees_layout.addLayout(input_directory_wrapper)
 
-        # Row 1: File Trees Layout (in columns)
+        # File Trees Layout below the browse section
         file_trees_layout = QHBoxLayout()
 
         input_file_tree_group = QGroupBox("Input")
