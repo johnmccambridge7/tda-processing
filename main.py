@@ -221,6 +221,20 @@ class MainWindow(QMainWindow):
             QTreeWidget::item:selected {
                 background-color: #5A4ACD;
             }
+            QHeaderView::section {
+                background-color: #4A4A4A;
+                color: white;
+                padding: 8px;
+                border: none;
+                border-right: 1px solid #555555;
+                font-weight: bold;
+            }
+            QHeaderView::section:hover {
+                background-color: #555555;
+            }
+            QHeaderView::section:checked {
+                background-color: #5A4ACD;
+            }
             QPushButton#runButton {
                 background-color: #6A5ACD;
                 font-size: 12px;
