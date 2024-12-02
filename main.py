@@ -102,10 +102,10 @@ class ImageSaverWorker(Thread):
             with TiffFile(self.current_file) as tif:
                 lsm_meta = tif.lsm_metadata
                 num_channels = lsm_meta.get('DimensionChannels', 3)
-                
+
                 # Get channel colors and ordering from metadata
                 channel_colors = lsm_meta.get('ChannelColors', {}).get('Colors', [])
-                
+
             if len(self.processed_channels) != num_channels:
                 self.signals.save_error.emit(f"Expected {num_channels} channels but got {len(self.processed_channels)}")
                 return
@@ -137,7 +137,8 @@ class ImageSaverWorker(Thread):
             imwrite(
                 output_path,
                 tiff,
-                resolution=(float(self.scaling_params.get('resolution', '1.0')), float(self.scaling_params.get('resolution', '1.0'))),
+                resolution=(float(self.scaling_params.get('resolution', '1.0')),
+                            float(self.scaling_params.get('resolution', '1.0'))),
                 imagej=True,
                 metadata=image_metadata
             )
@@ -280,7 +281,8 @@ class MainWindow(QMainWindow):
         if font_families1:
             self.setFont(QFont(font_families1[0]))
 
-        font_id2 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro-Regular.otf'))
+        font_id2 = QFontDatabase.addApplicationFont(
+            os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro-Regular.otf'))
         font_families2 = QFontDatabase.applicationFontFamilies(font_id2)
         if font_families2:
             regular_font = QFont(font_families2[0])
@@ -363,18 +365,18 @@ class MainWindow(QMainWindow):
         self.input_file_tree = QTreeWidget()
         self.input_file_tree.setHeaderLabels(["Name", "Path/Size", ""])
         self.input_file_tree.itemSelectionChanged.connect(self.handle_input_selection)
-        
+
         # Add Directory button as first row
         add_dir_item = QTreeWidgetItem(self.input_file_tree)
         add_dir_item.setText(0, "+ Add Folder")
         add_dir_item.setText(1, "Click to add a new directory")
         add_dir_item.setToolTip(0, "Click to add a new input directory")
-        
+
         # Style the "Add Directory" row
         font = add_dir_item.font(0)
         font.setBold(True)
         add_dir_item.setFont(0, font)
-        
+
         # Connect item click to add_input_directory
         self.input_file_tree.itemClicked.connect(
             lambda item: self.add_input_directory() if item == add_dir_item else None
@@ -465,7 +467,9 @@ class MainWindow(QMainWindow):
                         progress_bar.setValue(saved_progress.get(file_path, 0))
                         progress_bar.setMaximum(100)
                         self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
-                    self.file_status_items[file_path] = (file_item, progress_bar if file_path not in saved_progress or saved_progress[file_path] < 100 else None)
+                    self.file_status_items[file_path] = (file_item, progress_bar if file_path not in saved_progress or
+                                                                                    saved_progress[
+                                                                                        file_path] < 100 else None)
 
             dir_item.setExpanded(True)
 
@@ -478,13 +482,13 @@ class MainWindow(QMainWindow):
         add_dir_item.setText(1, "Click to add a new directory")  # Add descriptive text
         add_dir_item.setToolTip(0, "Click to add a new input directory")
         add_dir_item.is_add_directory = True  # Custom attribute to identify this item
-        
+
         # Style the "Add Directory" row
         font = add_dir_item.font(0)
         font.setBold(True)
         add_dir_item.setFont(0, font)
         add_dir_item.setFont(1, font)  # Also bold the description
-            
+
         # Ensure the click handler is properly connected
         self.input_file_tree.itemClicked.connect(
             lambda item: self.add_input_directory() if getattr(item, 'is_add_directory', False) else None
@@ -512,18 +516,20 @@ class MainWindow(QMainWindow):
                         self.output_file_status_items[output_path] = (item, None)
 
     def handle_output_selection(self, input_dir):
-        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory",
+                                                        self.output_directories.get(input_dir,
+                                                                                    self.selected_output_dir) or "")
         if selected_dir:
             self.output_directories[input_dir] = selected_dir
             self.directories_with_output.add(input_dir)  # Mark this directory as having output set
             self.populate_input_files()  # Refresh the display
             self.populate_output_files()
-            
+
             # Get files only from the selected input directory
             files_to_process = []
             for ext in ACCEPTED_FILE_TYPES:
                 files_to_process.extend(glob.glob(os.path.join(input_dir, f"*{ext}")))
-                
+
             # Start processing only these files
             if files_to_process:
                 self.to_process = files_to_process  # Override the global queue with just these files
@@ -535,7 +541,7 @@ class MainWindow(QMainWindow):
         if not self.to_process:
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
-            
+
         # When processing a specific directory, we're already working with filtered files
         files_to_process = self.to_process
 
@@ -561,7 +567,8 @@ class MainWindow(QMainWindow):
 
         reference_channel = self.select_reference_channel(self.current_file)
         if reference_channel is None:
-            QMessageBox.warning(self, "Reference Channel Not Found", "Could not determine the reference channel for processing.")
+            QMessageBox.warning(self, "Reference Channel Not Found",
+                                "Could not determine the reference channel for processing.")
             return
 
         # Initialize signals
@@ -626,26 +633,32 @@ class MainWindow(QMainWindow):
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
-                print(lsm_meta)
                 if lsm_meta is None:
                     return {}
-                # Parse voxel size and other metadata from lsm_meta
-                voxel_size = (
-                    lsm_meta.get('VoxelSizeX', '1.0'),
-                    lsm_meta.get('VoxelSizeY', '1.0'),
-                    lsm_meta.get('VoxelSizeZ', '1.0')
-                )
-                resolution = lsm_meta.get('Resolution', '1.0')
-                color_channels = lsm_meta.get('Channel', [])
 
+                # Extract voxel size
+                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0))  # Default to 1.0 if missing
+                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0))
+                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0))
+
+                # Derive resolution if not explicitly available
+                resolution = (voxel_size_x + voxel_size_y + voxel_size_z) / 3  # Simple average
+
+                # Parse channel information to detect LSM device types
+                color_channels = lsm_meta.get('Tracks', [])
+                is_lsm510 = any(track.get('Name', '').lower().startswith('lsm510') for track in color_channels)
+                is_lsm880 = any(track.get('Name', '').lower().startswith('lsm880') for track in color_channels)
+
+                # Create a dictionary for scaling parameters
                 scaling_params = {
-                    'xscale': Decimal(voxel_size[0]),
-                    'yscale': Decimal(voxel_size[1]),
-                    'zstep': voxel_size[2],
+                    'xscale': Decimal(voxel_size_x),
+                    'yscale': Decimal(voxel_size_y),
+                    'zstep': Decimal(voxel_size_z),
                     'resolution': Decimal(resolution),
-                    'lsm510': 1 if any('LSM510' in ch.get('Mode', '') for ch in color_channels) else 0,
-                    'lsm880': 1 if any('LSM880' in ch.get('Mode', '') for ch in color_channels) else 0
+                    'lsm510': 1 if is_lsm510 else 0,
+                    'lsm880': 1 if is_lsm880 else 0
                 }
+
                 return scaling_params
         except Exception as e:
             self.show_error(f"Error extracting metadata: {e}")
@@ -734,20 +747,20 @@ class MainWindow(QMainWindow):
         selected_items = self.input_file_tree.selectedItems()
         if not selected_items:
             return
-            
+
         selected_item = selected_items[0]
         if getattr(selected_item, 'is_add_directory', False):
             return
-            
+
         # Get the full path from the tooltip
         input_path = selected_item.toolTip(1)
         if not input_path:
             return
-            
+
         # Find corresponding output file
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         processed_name = f"{base_name}_PROCESSED.tiff"
-        
+
         # Search through output tree and select matching item
         self.output_file_tree.clearSelection()
         iterator = QTreeWidgetItemIterator(self.output_file_tree)
