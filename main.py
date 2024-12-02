@@ -325,6 +325,7 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
+
         # Input Directory Selection
         input_directory_wrapper = QVBoxLayout()
         input_directory_wrapper.setSpacing(5)
@@ -341,7 +342,7 @@ class MainWindow(QMainWindow):
         input_directory_wrapper.addLayout(input_field_layout)
         previews_overview_layout.addLayout(input_directory_wrapper)
 
-        # Right side: File Trees
+        # File Trees Layout
         file_trees_layout = QHBoxLayout()
 
         input_file_tree_group = QGroupBox("Input")
