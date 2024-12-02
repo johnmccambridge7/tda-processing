@@ -271,9 +271,20 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(header_layout)
 
-        # File Tree
+        # File Tree Group
         file_tree_group = QGroupBox("Directories")
         file_tree_layout = QVBoxLayout()
+
+        # Directory Selection Buttons
+        buttons_layout = QHBoxLayout()
+        self.set_input_button = QPushButton("Set Input Directory")
+        self.set_output_button = QPushButton("Set Output Directory")
+        buttons_layout.addWidget(self.set_input_button)
+        buttons_layout.addWidget(self.set_output_button)
+        file_tree_layout.addLayout(buttons_layout)
+
+        self.set_input_button.clicked.connect(self.set_input_directory)
+        self.set_output_button.clicked.connect(self.set_output_directory)
 
         self.file_tree = QTreeWidget()
         self.file_tree.setHeaderLabels(["Directories"])
@@ -616,6 +627,19 @@ class MainWindow(QMainWindow):
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
+
+    def set_input_directory(self):
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory", self.input_dir or "")
+        if selected_dir:
+            self.input_dir = selected_dir
+            self.update_run_button_state()
+            self.populate_input_files()
+
+    def set_output_directory(self):
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
+        if selected_dir:
+            self.selected_output_dir = selected_dir
+            self.update_run_button_state()
 
 
 def main():
