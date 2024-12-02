@@ -211,10 +211,14 @@ class MainWindow(QMainWindow):
                 background-color: #5A4ACD;
             }
             QPushButton#runButton {
-                background-color: #28a745;
+                background-color: #6A5ACD;
+                font-size: 12px;
+                padding: 4px 16px;
+                transition: all 0.3s ease;
             }
             QPushButton#runButton:disabled {
-                background-color: #6c757d;
+                background-color: #6A5ACD;
+                opacity: 0.6;
             }
         """)
         self.output_dir = DEFAULT_OUTPUT_DIR
@@ -407,7 +411,7 @@ class MainWindow(QMainWindow):
             self.run_button = QPushButton("Run")
             self.run_button.setObjectName("runButton")
             self.run_button.setEnabled(True)
-            self.run_button.clicked.connect(self.run_processing)
+            self.run_button.clicked.connect(self.handle_run_button_click)
             self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
             
             # Find all compatible files
@@ -441,8 +445,15 @@ class MainWindow(QMainWindow):
             else:
                 self.run_button.setEnabled(False)
 
+    def handle_run_button_click(self):
+        self.run_button.setText("Running...")
+        self.run_button.setEnabled(False)
+        self.run_processing()
+
     def run_processing(self):
         if not self.to_process:
+            self.run_button.setText("Run")
+            self.run_button.setEnabled(True)
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
 
