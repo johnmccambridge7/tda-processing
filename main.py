@@ -148,6 +148,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(WINDOW_TITLE)
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon('base-app/icon.png'))
+        self.run_button = None  # Initialize run_button attribute
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2E2E2E;
@@ -434,10 +435,11 @@ class MainWindow(QMainWindow):
         self.output_file_status_items = {}
 
     def update_run_button_state(self):
-        if self.input_dir and self.selected_output_dir:
-            self.run_button.setEnabled(True)
-        else:
-            self.run_button.setEnabled(False)
+        if hasattr(self, 'run_button') and self.run_button:
+            if self.input_dir and self.selected_output_dir:
+                self.run_button.setEnabled(True)
+            else:
+                self.run_button.setEnabled(False)
 
     def run_processing(self):
         if not self.to_process:
