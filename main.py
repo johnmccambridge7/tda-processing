@@ -444,19 +444,26 @@ class MainWindow(QMainWindow):
             self.output_directories[input_dir] = selected_dir
             button.hide()  # Hide the Set Output button after selection
             self.populate_output_files()
-            # Start processing immediately after output directory is selected
-            self.run_processing(input_dir)
+            
+            # Get files only from the selected input directory
+            files_to_process = []
+            for ext in ACCEPTED_FILE_TYPES:
+                files_to_process.extend(glob.glob(os.path.join(input_dir, f"*{ext}")))
+                
+            # Start processing only these files
+            if files_to_process:
+                self.to_process = files_to_process  # Override the global queue with just these files
+                self.run_processing(input_dir)
+            else:
+                QMessageBox.warning(self, "No Files Found", "No compatible files found in the selected directory.")
 
     def run_processing(self, selected_input_dir=None):
-        # If a specific input directory is selected, only process files from that directory
-        if selected_input_dir:
-            files_to_process = [f for f in self.to_process if os.path.commonpath([selected_input_dir, f]) == selected_input_dir]
-        else:
-            files_to_process = self.to_process
-
-        if not files_to_process:
+        if not self.to_process:
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
+            
+        # When processing a specific directory, we're already working with filtered files
+        files_to_process = self.to_process
 
         for label in self.preview_labels:
             label.clear()
