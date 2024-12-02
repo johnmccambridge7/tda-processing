@@ -148,7 +148,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(WINDOW_TITLE)
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon('base-app/icon.png'))
-        self.run_button = None  # Initialize run_button attribute
         self.input_directories = []  # Initialize input_directories list
         self.setStyleSheet("""
             QMainWindow {
@@ -440,12 +439,6 @@ class MainWindow(QMainWindow):
             # Add a small arrow icon to indicate it's expandable
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
-    def update_run_button_state(self):
-        if hasattr(self, 'run_button') and self.run_button:
-            if self.input_dir and self.selected_output_dir:
-                self.run_button.setEnabled(True)
-            else:
-                self.run_button.setEnabled(False)
 
     def handle_output_selection(self):
         selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
@@ -457,8 +450,6 @@ class MainWindow(QMainWindow):
 
     def run_processing(self):
         if not self.to_process:
-            self.run_button.setText("Run")
-            self.run_button.setEnabled(True)
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
 
@@ -609,11 +600,8 @@ class MainWindow(QMainWindow):
                 self.run_processing()
             else:
                 QMessageBox.information(self, "Processing Complete", "All files have been processed!")
-                # Mark processing as complete and hide the run button
+                # Mark processing as complete
                 self.processing_complete = True
-                if self.run_button:
-                    self.run_button.hide()
-                    self.run_button = None  # Clear the reference
 
     def save_combined_image(self):
         # This method is no longer called directly from worker_finished
