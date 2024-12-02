@@ -345,8 +345,10 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
-        # Create grid layout for file trees
+        # Create grid layout for file trees with column stretch
         grid_layout = QGridLayout()
+        grid_layout.setColumnStretch(0, 1)  # Input tree gets 1 part
+        grid_layout.setColumnStretch(1, 2)  # Output tree gets 2 parts
 
         # File Trees Layout
         input_file_tree_group = QGroupBox("Input")
