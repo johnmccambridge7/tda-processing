@@ -347,14 +347,6 @@ class MainWindow(QMainWindow):
         # Create grid layout for file trees
         grid_layout = QGridLayout()
 
-        # Add Directory button at the top
-        add_directory_layout = QHBoxLayout()
-        self.browse_input_button = QPushButton("Add Directory")
-        self.browse_input_button.clicked.connect(self.add_input_directory)
-        add_directory_layout.addWidget(self.browse_input_button)
-        add_directory_layout.addStretch()
-        grid_layout.addLayout(add_directory_layout, 0, 0, 1, 2)
-
         # File Trees Layout
         input_file_tree_group = QGroupBox("Input")
         input_file_tree_layout = QVBoxLayout()
@@ -362,6 +354,21 @@ class MainWindow(QMainWindow):
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
         self.input_file_tree.setHeaderLabels(["Name", "Path/Size", ""])
+        
+        # Add Directory button as first row
+        add_dir_item = QTreeWidgetItem(self.input_file_tree)
+        add_dir_item.setText(0, "Add Directory")
+        add_dir_item.setToolTip(0, "Click to add a new input directory")
+        
+        # Style the "Add Directory" row
+        font = add_dir_item.font(0)
+        font.setBold(True)
+        add_dir_item.setFont(0, font)
+        
+        # Connect item click to add_input_directory
+        self.input_file_tree.itemClicked.connect(
+            lambda item: self.add_input_directory() if item == add_dir_item else None
+        )
         self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
