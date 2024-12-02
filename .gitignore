@@ -1,3 +1,6 @@
 .aider*
 .env
 rubbish/
+build/
+dist/
+*.egg-info/
