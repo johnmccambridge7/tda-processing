@@ -271,42 +271,8 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(header_layout)
 
-        # File Tree Group
-        file_tree_group = QGroupBox("Directories")
-        file_tree_layout = QVBoxLayout()
-
-        # Directory Selection Buttons
-        buttons_layout = QHBoxLayout()
-        self.set_input_button = QPushButton("Set Input Directory")
-        self.set_output_button = QPushButton("Set Output Directory")
-        buttons_layout.addWidget(self.set_input_button)
-        buttons_layout.addWidget(self.set_output_button)
-        file_tree_layout.addLayout(buttons_layout)
-
-        self.set_input_button.clicked.connect(self.set_input_directory)
-        self.set_output_button.clicked.connect(self.set_output_directory)
-
-        self.file_tree = QTreeWidget()
-        self.file_tree.setHeaderLabels(["Directories"])
-        self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.file_tree.itemClicked.connect(self.handle_item_clicked)
-        file_tree_layout.addWidget(self.file_tree)
-
-        # Populate file tree with the root directories and directory selectors
-        self.populate_file_tree()
-
-        file_tree_group.setLayout(file_tree_layout)
-        main_layout.addWidget(file_tree_group)
-
-        # Run Button
-        self.run_button = QPushButton("Run")
-        self.run_button.setObjectName("runButton")
-        self.run_button.setEnabled(False)
-        self.run_button.clicked.connect(self.run_processing)
-        main_layout.addWidget(self.run_button)
-
         # Previews & Overview
-        previews_overview_group = QGroupBox("Previews & Overview")
+        previews_overview_group = QGroupBox("Overview")
         previews_overview_layout = QHBoxLayout()
 
         # Left side: Previews
@@ -350,12 +316,41 @@ class MainWindow(QMainWindow):
         overview_layout = QVBoxLayout()
         overview_layout.setAlignment(Qt.AlignTop)
 
+
+
+
+
+        # File Tree Group
+        file_tree_group = QGroupBox("Directories")
+        file_tree_layout = QVBoxLayout()
+
+        # Directory Selection Buttons
+        buttons_layout = QHBoxLayout()
+        self.set_input_button = QPushButton("Set Input Directory")
+        self.set_output_button = QPushButton("Set Output Directory")
+        buttons_layout.addWidget(self.set_input_button)
+        buttons_layout.addWidget(self.set_output_button)
+        file_tree_layout.addLayout(buttons_layout)
+
+        self.set_input_button.clicked.connect(self.set_input_directory)
+        self.set_output_button.clicked.connect(self.set_output_directory)
+
+        # Run Button
+        self.run_button = QPushButton("Run")
+        self.run_button.setObjectName("runButton")
+        self.run_button.setEnabled(False)
+        self.run_button.clicked.connect(self.run_processing)
+
+        file_tree_group.setLayout(file_tree_layout)
+        overview_layout.addWidget(file_tree_group)
+
         self.processing_file_tree = QTreeWidget()
         self.processing_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
         self.processing_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.processing_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.processing_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         overview_layout.addWidget(self.processing_file_tree)
+        overview_layout.addWidget(self.run_button)
 
         overview_container = QWidget()
         overview_container.setLayout(overview_layout)
