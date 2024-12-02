@@ -31,6 +31,8 @@ class WorkerSignals(QObject):
     preview = pyqtSignal(int, QPixmap)  # Added channel index
     reference = pyqtSignal(int, QPixmap)  # Added channel index
     processed_data = pyqtSignal(int, np.ndarray)  # New signal for processed data
+    save_finished = pyqtSignal(str)  # Signal when saving is done
+    save_error = pyqtSignal(str)  # Signal when saving encounters an error
 
 
 class ImageProcessorWorker(Thread):
@@ -82,6 +84,64 @@ class ImageProcessorWorker(Thread):
     def update_progress(self, value):
         self.progress_value += value
         self.signals.progress.emit(value)
+
+
+class ImageSaverWorker(Thread):
+    def __init__(self, processed_channels, scaling_params, current_file, output_dir, signals):
+        super().__init__()
+        self.processed_channels = processed_channels
+        self.scaling_params = scaling_params
+        self.current_file = current_file
+        self.output_dir = output_dir
+        self.signals = signals
+
+    def run(self):
+        try:
+            if len(self.processed_channels) != 3:
+                self.signals.save_error.emit("Incomplete channel data for saving.")
+                return
+
+            # Determine ordering based on lsm510 and lsm880 flags
+            ordering = list(range(len(self.processed_channels.keys())))
+            if self.scaling_params.get('lsm510', 0):
+                ordering[0], ordering[1] = ordering[1], ordering[0]
+            elif self.scaling_params.get('lsm880', 0):
+                ordering[0], ordering[2] = ordering[2], ordering[0]
+
+            # Stack the processed channels based on the ordering
+            new_image = np.array([self.processed_channels[x] for x in ordering])
+            new_image = new_image.transpose((1, 0, 2, 3))
+
+            tiff = np.array(new_image).astype(np.uint8)
+
+            image_metadata = {
+                'axes': 'ZCYX',
+                'mode': 'color',
+                'unit': 'um',
+                'spacing': self.scaling_params.get('zstep', '1.0')
+            }
+
+            os.makedirs(self.output_dir, exist_ok=True)
+
+            base_name = os.path.splitext(os.path.basename(self.current_file))[0]
+            filename = f"{base_name}_PROCESSED.tiff"
+            output_path = os.path.join(self.output_dir, filename)
+
+            imwrite(
+                output_path,
+                tiff,
+                resolution=(float(self.scaling_params.get('resolution', '1.0')), float(self.scaling_params.get('resolution', '1.0'))),
+                imagej=True,
+                metadata=image_metadata
+            )
+
+            # Add the saved file to the Output Directory in the file tree
+            self.signals.save_finished.emit(output_path)
+
+            self.signals.save_finished.emit(output_path)
+
+        except Exception as e:
+            self.signals.save_error.emit(str(e))
 
 
 class MainWindow(QMainWindow):
@@ -381,6 +441,8 @@ class MainWindow(QMainWindow):
         self.worker_signals.preview.connect(self.update_preview)
         self.worker_signals.reference.connect(self.update_reference)
         self.worker_signals.processed_data.connect(self.collect_processed_data)
+        self.worker_signals.save_finished.connect(self.handle_save_finished)
+        self.worker_signals.save_error.connect(self.show_error)
 
         # Initialize tracking variables
         self.processed_channels = {}
@@ -472,7 +534,15 @@ class MainWindow(QMainWindow):
     def worker_finished(self):
         self.workers_finished += 1
         if self.workers_finished == self.expected_total:
-            self.save_combined_image()
+            # Start the saving process in a separate thread
+            saver_worker = ImageSaverWorker(
+                processed_channels=self.processed_channels,
+                scaling_params=self.scaling_params,
+                current_file=self.current_file,
+                output_dir=self.output_dir,
+                signals=self.worker_signals
+            )
+            saver_worker.start()
             self.completed_files += 1
             if self.to_process:
                 self.start_processing()
@@ -480,49 +550,11 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, "Processing Complete", "All files have been processed!")
 
     def save_combined_image(self):
-        if len(self.processed_channels) != 3:
-            return
+        # This method is no longer called directly from worker_finished
+        pass
 
-        # Determine ordering based on lsm510 and lsm880 flags
-        ordering = list(range(len(self.processed_channels.keys())))
-        if self.scaling_params.get('lsm510', 0):
-            ordering[0], ordering[1] = ordering[1], ordering[0]
-        elif self.scaling_params.get('lsm880', 0):
-            ordering[0], ordering[2] = ordering[2], ordering[0]
-
-        # Stack the processed channels based on the ordering
-        new_image = np.array([self.processed_channels[x] for x in ordering])
-        new_image = new_image.transpose((1, 0, 2, 3))
-
-        tiff = np.array(new_image).astype(np.uint8)
-
-        image_metadata = {
-            'axes': 'ZCYX',
-            'mode': 'color',
-            'unit': 'um',
-            'spacing': self.scaling_params.get('zstep', '1.0')
-        }
-
-        os.makedirs(self.output_dir, exist_ok=True)
-
-        base_name = os.path.splitext(os.path.basename(self.current_file))[0]
-        filename = f"{base_name}_PROCESSED.tiff"
-        output_path = os.path.join(self.output_dir, filename)
-
-        imwrite(
-            output_path,
-            tiff,
-            resolution=(float(self.scaling_params.get('resolution', '1.0')), float(self.scaling_params.get('resolution', '1.0'))),
-            imagej=True,
-            metadata=image_metadata
-        )
-
+    def handle_save_finished(self, output_path):
         # Add the saved file to the Output Directory in the file tree
-        self.add_output_file(output_path)
-
-        self.processed_channels = {}
-
-    def add_output_file(self, output_path):
         file_name = os.path.basename(output_path)
         file_size = os.path.getsize(output_path) // 1024  # Size in KB
         item = QTreeWidgetItem(self.output_dir_parent, [file_name, str(file_size), "Saved"])
