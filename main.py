@@ -339,7 +339,7 @@ class MainWindow(QMainWindow):
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
-        self.input_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Progress"])
+        self.input_file_tree.setHeaderLabels(["File Name", "Size (MB)", "Progress"])
         self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
@@ -370,7 +370,7 @@ class MainWindow(QMainWindow):
 
         # Output File Tree Widget
         self.output_file_tree = QTreeWidget()
-        self.output_file_tree.setHeaderLabels(["File Name", "Size (KB)", "Status"])
+        self.output_file_tree.setHeaderLabels(["File Name", "Size (MB)", "Status"])
         self.output_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.output_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.output_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
@@ -414,8 +414,9 @@ class MainWindow(QMainWindow):
 
             for file_path in self.to_process:
                 file_name = os.path.basename(file_path)
-                file_size = os.path.getsize(file_path) // 1024  # Size in KB
-                item = QTreeWidgetItem(self.input_file_tree, [file_name, str(file_size), "0%"])
+                file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
+                formatted_size = f"{file_size:.2f} MB"
+                item = QTreeWidgetItem(self.input_file_tree, [file_name, formatted_size, "0%"])
                 progress_bar = QProgressBar()
                 progress_bar.setValue(0)
                 progress_bar.setMaximum(100)
@@ -587,8 +588,9 @@ class MainWindow(QMainWindow):
     def handle_save_finished(self, output_path):
         # Add the saved file to the Output Directory in the output file tree
         file_name = os.path.basename(output_path)
-        file_size = os.path.getsize(output_path) // 1024  # Size in KB
-        item = QTreeWidgetItem(self.output_file_tree, [file_name, str(file_size), "Saved"])
+        file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
+        formatted_size = f"{file_size:.2f} MB"
+        item = QTreeWidgetItem(self.output_file_tree, [file_name, formatted_size, "Saved"])
         self.output_file_tree.setItemWidget(item, 2, QLabel("Saved"))
         self.output_file_status_items[output_path] = (item, None)
 
