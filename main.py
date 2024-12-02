@@ -402,6 +402,13 @@ class MainWindow(QMainWindow):
             root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
             root_item.setExpanded(True)  # Expand by default
             
+            # Add run button to directory row
+            self.run_button = QPushButton("Run")
+            self.run_button.setObjectName("runButton")
+            self.run_button.setEnabled(True)
+            self.run_button.clicked.connect(self.run_processing)
+            self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
+            
             # Find all compatible files
             self.to_process = [
                 file for ext in ACCEPTED_FILE_TYPES for file in glob.glob(os.path.join(self.input_dir, f"*{ext}"))
@@ -416,18 +423,11 @@ class MainWindow(QMainWindow):
                 file_size = os.path.getsize(file_path) / (1024 * 1024)  # Size in MB
                 formatted_size = f"{file_size:.2f} MB"
                 item = QTreeWidgetItem(root_item, [file_name, formatted_size, ""])
-                if file_path == self.to_process[0]:  # First file gets the run button
-                    self.run_button = QPushButton("Run")
-                    self.run_button.setObjectName("runButton")
-                    self.run_button.setEnabled(True)
-                    self.run_button.clicked.connect(self.run_processing)
-                    self.input_file_tree.setItemWidget(item, 2, self.run_button)
-                else:
-                    progress_bar = QProgressBar()
-                    progress_bar.setValue(0)
-                    progress_bar.setMaximum(100)
-                    self.input_file_tree.setItemWidget(item, 2, progress_bar)
-                self.file_status_items[file_path] = (item, progress_bar if file_path != self.to_process[0] else None)
+                progress_bar = QProgressBar()
+                progress_bar.setValue(0)
+                progress_bar.setMaximum(100)
+                self.input_file_tree.setItemWidget(item, 2, progress_bar)
+                self.file_status_items[file_path] = (item, progress_bar)
 
     def populate_output_files(self):
         self.output_file_tree.clear()
