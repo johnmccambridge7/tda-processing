@@ -177,6 +177,13 @@ class MainWindow(QMainWindow):
                 background-color: #4CAF50;
                 width: 20px;
             }
+            QProgressBar::chunk[complete="true"] {
+                background-color: #45a049;
+            }
+            QLabel.completed {
+                color: #45a049;
+                font-weight: bold;
+            }
             QCheckBox {
                 color: #FFFFFF;
             }
@@ -568,7 +575,14 @@ class MainWindow(QMainWindow):
         if self.current_file in self.file_status_items:
             item, progress_bar = self.file_status_items[self.current_file]
             progress_bar.setValue(int(progress_percentage))
-            item.setText(2, f"{int(progress_percentage)}%")
+            if progress_percentage >= 100:
+                progress_bar.setProperty("complete", True)
+                progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
+                completed_label = QLabel("Completed")
+                completed_label.setStyleSheet("color: #45a049; font-weight: bold;")
+                self.input_file_tree.setItemWidget(item, 2, completed_label)
+            else:
+                item.setText(2, f"{int(progress_percentage)}%")
 
     def update_preview(self, channel_idx, pixmap):
         if 0 <= channel_idx < len(self.preview_labels):
