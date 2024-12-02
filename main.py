@@ -356,6 +356,7 @@ class MainWindow(QMainWindow):
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
         self.input_file_tree.setHeaderLabels(["Name", "Path/Size", ""])
+        self.input_file_tree.itemSelectionChanged.connect(self.handle_input_selection)
         
         # Add Directory button as first row
         add_dir_item = QTreeWidgetItem(self.input_file_tree)
@@ -721,6 +722,35 @@ class MainWindow(QMainWindow):
     def save_combined_image(self):
         # This method is no longer called directly from worker_finished
         pass
+
+    def handle_input_selection(self):
+        selected_items = self.input_file_tree.selectedItems()
+        if not selected_items:
+            return
+            
+        selected_item = selected_items[0]
+        if getattr(selected_item, 'is_add_directory', False):
+            return
+            
+        # Get the full path from the tooltip
+        input_path = selected_item.toolTip(1)
+        if not input_path:
+            return
+            
+        # Find corresponding output file
+        base_name = os.path.splitext(os.path.basename(input_path))[0]
+        processed_name = f"{base_name}_PROCESSED.tiff"
+        
+        # Search through output tree and select matching item
+        self.output_file_tree.clearSelection()
+        iterator = QTreeWidgetItemIterator(self.output_file_tree)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) == processed_name:
+                item.setSelected(True)
+                self.output_file_tree.scrollToItem(item)
+                break
+            iterator += 1
 
     def handle_save_finished(self, output_path):
         # Find the root item for the corresponding output directory
