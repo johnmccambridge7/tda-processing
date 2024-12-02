@@ -159,7 +159,7 @@ class MainWindow(QMainWindow):
                 background-color: #6A5ACD;
                 color: white;
                 border: none;
-                padding: 10px 20px;
+                padding: 6px 20px;
                 text-align: center;
                 text-decoration: none;
                 font-size: 14px;
@@ -318,7 +318,7 @@ class MainWindow(QMainWindow):
         overview_layout.setAlignment(Qt.AlignTop)
 
         # File Tree Group
-        file_tree_group = QGroupBox("Load Data")
+        file_tree_group = QGroupBox()
         file_tree_layout = QVBoxLayout()
 
         # Directory Selection Inputs
