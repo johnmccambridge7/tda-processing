@@ -709,7 +709,25 @@ class MainWindow(QMainWindow):
                 sorted_tracks = sorted(tracks, key=lambda t: t.get('MultiplexOrder', 0))
                 channel_order = [track['Name'] for track in sorted_tracks]
 
-                print(lsm_meta.)
+                # Get channel colors from metadata
+                channel_colors = lsm_meta.get('ChannelColors', [])
+                if channel_colors:
+                    # Map RGB values to channel indices
+                    color_map = {
+                        (0, 255, 0): 1,  # Green -> 1
+                        (255, 0, 0): 0,  # Red -> 0
+                        (0, 0, 255): 2   # Blue -> 2
+                    }
+                    
+                    # Create channel order based on colors
+                    channel_order = []
+                    for color in channel_colors:
+                        rgb = tuple(color[:3])  # Take only RGB values, ignore alpha
+                        if rgb in color_map:
+                            channel_order.append(color_map[rgb])
+                else:
+                    # Fallback to default order if no colors found
+                    channel_order = list(range(len(tracks)))
 
                 scaling_params = {
                     'VoxelSizeX': voxel_size_x,
@@ -718,7 +736,7 @@ class MainWindow(QMainWindow):
                     'resolution': resolution,
                     'lsm510': 1 if any(track.get('Name', '').lower().startswith('lsm510') for track in tracks) else 0,
                     'lsm880': 1 if any(track.get('Name', '').lower().startswith('lsm880') for track in tracks) else 0,
-                    'channel_order': lsm_meta.get('ScanInformation', {}).get('Tracks', [])
+                    'channel_order': channel_order
                 }
 
                 return scaling_params
