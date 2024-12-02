@@ -149,6 +149,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon('base-app/icon.png'))
         self.run_button = None  # Initialize run_button attribute
+        self.input_directories = []  # Initialize input_directories list
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2E2E2E;
@@ -644,14 +645,7 @@ class MainWindow(QMainWindow):
         if selected_dir and selected_dir not in self.input_directories:
             self.input_directories.append(selected_dir)
             
-            # Create tree item for the directory
-            item = QTreeWidgetItem(self.directory_list)
-            item.setText(0, selected_dir)
-            
-            # Create remove button
-            remove_button = QPushButton("Remove")
-            remove_button.clicked.connect(lambda: self.remove_input_directory(selected_dir, item))
-            self.directory_list.setItemWidget(item, 1, remove_button)
+            # Refresh the input files display
             
             self.update_run_button_state()
             self.populate_input_files()
