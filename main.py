@@ -136,7 +136,6 @@ class ImageSaverWorker(Thread):
                 metadata=image_metadata
             )
 
-            # Add the saved file to the Output Directory in the file tree
             self.signals.save_finished.emit(output_path)
 
         except Exception as e:
@@ -621,6 +620,7 @@ class MainWindow(QMainWindow):
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
+                print(lsm_meta)
                 if lsm_meta is None:
                     return {}
                 # Parse voxel size and other metadata from lsm_meta
