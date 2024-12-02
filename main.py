@@ -610,6 +610,9 @@ class MainWindow(QMainWindow):
                 self.run_processing()
             else:
                 QMessageBox.information(self, "Processing Complete", "All files have been processed!")
+                # Hide the run button when all files are processed
+                if self.run_button:
+                    self.run_button.hide()
 
     def save_combined_image(self):
         # This method is no longer called directly from worker_finished
