@@ -98,29 +98,44 @@ class ImageSaverWorker(Thread):
 
     def run(self):
         try:
+            # Get channel order, falling back to processed channels if not available
             channel_order = self.scaling_params.get('channel_order', list(self.processed_channels.keys()))
             if not channel_order:
                 self.signals.save_error.emit("Channel order not specified.")
                 return
-
-            # Ensure channel_order is sorted based on MultiplexOrder
+            print(1)
+            # Ensure channel_order is sorted based on MultiplexOrder (if available)
             sorted_channels = sorted(channel_order, key=lambda x: x)
 
-            # Handle cases where there are only two channels
+            # Handle cases with fewer than three channels (e.g., duplicate for RGB)
             if len(sorted_channels) == 2:
-                # Duplicate the second channel to make it three channels
-                sorted_channels.append(sorted_channels[-1])
-
-            if len(self.processed_channels) != len(sorted_channels):
-                self.signals.save_error.emit(f"Expected {len(sorted_channels)} channels but got {len(self.processed_channels)}")
+                sorted_channels.append(sorted_channels[-1])  # Duplicate last channel
+            elif len(sorted_channels) < 2:
+                self.signals.save_error.emit("Insufficient channels to create an RGB image.")
                 return
+            print(2)
+            # Map channels to RGB order (mCherry -> Red, GFP -> Green, Alexa647 -> Blue)
+            channel_to_rgb = {'GFP': 1, 'mCherry': 0, 'Alexa647': 2}  # Map names to RGB indices
+            rgb_order = [channel_to_rgb.get(channel, -1) for channel in sorted_channels]
 
-            # Stack the processed channels based on the sorted order
+            # Validate and reorder processed channels into RGB order
+            if len(self.processed_channels) != len(sorted_channels):
+                self.signals.save_error.emit(
+                    f"Expected {len(sorted_channels)} channels but got {len(self.processed_channels)}.")
+                return
+            print(3, sorted_channels)
+            # Collect processed channels and map them to RGB order
             ordered_processed = [self.processed_channels[idx] for idx in sorted_channels]
-            new_image = np.array(ordered_processed)
-            new_image = new_image.transpose((1, 0, 2, 3))  # Transpose to ZCYX
+            print(4)
+            rgb_image = np.stack(
+                [ordered_processed[rgb_order.index(i)] if i in rgb_order else np.zeros_like(ordered_processed[0])
+                 for i in range(3)], axis=0
+            )
+            print(5)
+            rgb_image = rgb_image.transpose((1, 2, 3, 0))  # Convert to ZYX(RGB)
 
-            tiff = np.array(new_image).astype(np.uint8)
+            # Convert to uint8 for saving
+            tiff = rgb_image.astype(np.uint8)
 
             # Correct voxel sizes and resolution
             voxel_size_x = float(self.scaling_params.get('VoxelSizeX', 1.0))
@@ -129,20 +144,24 @@ class ImageSaverWorker(Thread):
             resolution_x = float(self.scaling_params.get('resolution', '1.0'))
             resolution_y = float(self.scaling_params.get('resolution', '1.0'))
 
+            # Metadata for saving the image
             image_metadata = {
-                'axes': 'ZCYX',
+                'axes': 'ZYX',
                 'mode': 'color',
                 'unit': 'um',
                 'spacing': (voxel_size_x, voxel_size_y, voxel_size_z),
                 'resolution': (resolution_x, resolution_y)
             }
 
+            # Prepare output directory
             os.makedirs(self.output_dir, exist_ok=True)
 
+            # Generate output file name and path
             base_name = os.path.splitext(os.path.basename(self.current_file))[0]
             filename = f"{base_name}_PROCESSED.tiff"
             output_path = os.path.join(self.output_dir, filename)
 
+            # Save the image using tifffile
             imwrite(
                 output_path,
                 tiff,
@@ -151,9 +170,12 @@ class ImageSaverWorker(Thread):
                 metadata=image_metadata
             )
 
+            # Emit success signal
             self.signals.save_finished.emit(output_path)
 
         except Exception as e:
+            # Emit error signal
+            print(e)
             self.signals.save_error.emit(str(e))
 
 
@@ -587,6 +609,7 @@ class MainWindow(QMainWindow):
 
         metadata = self.extract_lsm_metadata(self.current_file)
         if metadata:
+            print(metadata)
             self.scaling_params.update(metadata)
 
         reference_channel = self.select_reference_channel(self.current_file)
@@ -668,24 +691,26 @@ class MainWindow(QMainWindow):
                 if lsm_meta is None:
                     return {}
 
-                # Extract voxel size
-                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0))  # Default to 1.0 if missing
-                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0))
-                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0))
+                # Extract voxel size and convert from meters to micrometers (µm)
+                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0)) * 1e6  # Convert meters to µm
+                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0)) * 1e6  # Convert meters to µm
+                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0)) * 1e6  # Convert meters to µm
 
-                # Derive resolution if not explicitly available
-                resolution = (voxel_size_x + voxel_size_y + voxel_size_z) / 3  # Simple average
+                # Calculate resolution in pixels per micrometer
+                resolution_x = 1.0 / voxel_size_x if voxel_size_x > 0 else 0
+                resolution_y = 1.0 / voxel_size_y if voxel_size_y > 0 else 0
+                resolution = (resolution_x + resolution_y) / 2
 
                 # Parse channel information to detect channel order based on MultiplexOrder
                 tracks = lsm_meta.get('ScanInformation', {}).get('Tracks', [])
                 if not tracks:
                     return {}
 
-                # Sort tracks based on MultiplexOrder
                 sorted_tracks = sorted(tracks, key=lambda t: t.get('MultiplexOrder', 0))
                 channel_order = [track['Name'] for track in sorted_tracks]
 
-                # Create a dictionary for scaling parameters
+                print(lsm_meta.)
+
                 scaling_params = {
                     'VoxelSizeX': voxel_size_x,
                     'VoxelSizeY': voxel_size_y,
@@ -693,7 +718,7 @@ class MainWindow(QMainWindow):
                     'resolution': resolution,
                     'lsm510': 1 if any(track.get('Name', '').lower().startswith('lsm510') for track in tracks) else 0,
                     'lsm880': 1 if any(track.get('Name', '').lower().startswith('lsm880') for track in tracks) else 0,
-                    'channel_order': channel_order
+                    'channel_order': lsm_meta.get('ScanInformation', {}).get('Tracks', [])
                 }
 
                 return scaling_params
