@@ -339,7 +339,7 @@ class MainWindow(QMainWindow):
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
-        self.input_file_tree.setHeaderLabels(["File Name", "Size (MB)", "Progress"])
+        self.input_file_tree.setHeaderLabels(["File Name", "Size (MB)", ""])
         self.input_file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.input_file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.input_file_tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
