@@ -149,6 +149,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon('base-app/icon.png'))
         self.input_directories = []  # Initialize input_directories list
+        self.output_directories = {}  # Dictionary to map input directories to their output directories
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2E2E2E;
@@ -397,7 +398,8 @@ class MainWindow(QMainWindow):
             # Add set output button for directory
             set_output_button = QPushButton("Set Output")
             set_output_button.setStyleSheet("font-size: 10px; padding: 2px 8px;")  # Smaller font and padding
-            set_output_button.clicked.connect(self.handle_output_selection)
+            # Connect with lambda to pass input_dir and set_output_button
+            set_output_button.clicked.connect(lambda _, d=input_dir, b=set_output_button: self.handle_output_selection(d, b))
             self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
 
             # Find and add files for this directory
@@ -437,10 +439,11 @@ class MainWindow(QMainWindow):
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
 
-    def handle_output_selection(self):
-        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
+    def handle_output_selection(self, input_dir, button):
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_directories.get(input_dir, self.selected_output_dir) or "")
         if selected_dir:
-            self.selected_output_dir = selected_dir
+            self.output_directories[input_dir] = selected_dir
+            button.hide()  # Hide the Set Output button after selection
             self.populate_output_files()
             # Start processing immediately after output directory is selected
             self.run_processing()
