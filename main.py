@@ -443,7 +443,7 @@ class MainWindow(QMainWindow):
             # Create root directory item for each output directory with dropdown
             dir_name = os.path.basename(output_dir)
             root_item = QTreeWidgetItem(self.output_file_tree, [dir_name, "", ""])
-            root_item.setExpanded(False)  # Start collapsed
+            root_item.setExpanded(True)  # Start expanded
             root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
             # Restore any saved output files for this directory
