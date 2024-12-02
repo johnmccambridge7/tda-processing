@@ -325,38 +325,31 @@ class MainWindow(QMainWindow):
         previews_layout.addStretch()
         previews_overview_layout.addLayout(previews_layout)
 
-
         # Create grid layout for directory selection and file trees
         grid_layout = QGridLayout()
-        
-        # Input Directory Selection at the top (spans both columns)
+
+        # Input Directory Selection at the top (row 0, spanning two columns)
         input_directory_group = QGroupBox("Input Directory")
         input_directory_layout = QHBoxLayout()
         input_directory_layout.setSpacing(5)
-        
+
         self.input_dir_line_edit = QLineEdit()
         self.input_dir_line_edit.setReadOnly(True)
         self.input_dir_line_edit.setStyleSheet("color: black;")
         self.input_dir_line_edit.setPlaceholderText("Select Input Directory")
         self.browse_input_button = QPushButton("Browse")
         self.browse_input_button.clicked.connect(self.set_input_directory)
-        
+
         input_directory_layout.addWidget(self.input_dir_line_edit)
         input_directory_layout.addWidget(self.browse_input_button)
         input_directory_group.setLayout(input_directory_layout)
-        
-        # Add input directory group to grid (row 0, spanning both columns)
+
+        # Add input directory group to grid (row 0, spanning two columns)
         grid_layout.addWidget(input_directory_group, 0, 0, 1, 2)
 
         # File Trees Layout (row 1)
-        file_trees_layout = QHBoxLayout()
-        grid_widget = QWidget()
-        grid_widget.setLayout(grid_layout)
-        previews_overview_layout.addWidget(grid_widget)
-
         input_file_tree_group = QGroupBox("Input")
         input_file_tree_layout = QVBoxLayout()
-
 
         # Input File Tree Widget
         self.input_file_tree = QTreeWidget()
@@ -367,12 +360,11 @@ class MainWindow(QMainWindow):
         input_file_tree_layout.addWidget(self.input_file_tree)
 
         input_file_tree_group.setLayout(input_file_tree_layout)
-        file_trees_layout.addWidget(input_file_tree_group)
+        grid_layout.addWidget(input_file_tree_group, 1, 0)
 
         # Output File Tree
         output_file_tree_group = QGroupBox("Output")
         output_file_tree_layout = QVBoxLayout()
-
 
         # Output File Tree Widget
         self.output_file_tree = QTreeWidget()
@@ -383,9 +375,9 @@ class MainWindow(QMainWindow):
         output_file_tree_layout.addWidget(self.output_file_tree)
 
         output_file_tree_group.setLayout(output_file_tree_layout)
-        file_trees_layout.addWidget(output_file_tree_group)
+        grid_layout.addWidget(output_file_tree_group, 1, 1)
 
-        previews_overview_layout.addLayout(file_trees_layout)
+        previews_overview_layout.addLayout(grid_layout)
 
         previews_overview_group.setLayout(previews_overview_layout)
         main_layout.addWidget(previews_overview_group)
