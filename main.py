@@ -337,16 +337,20 @@ class MainWindow(QMainWindow):
         input_directory_wrapper.addLayout(input_field_layout)
         file_tree_layout.addLayout(input_directory_wrapper)
 
-        output_directory_layout = QHBoxLayout()
+        output_directory_wrapper = QVBoxLayout()
         output_label = QLabel("Output Directory:")
+        output_directory_wrapper.addWidget(output_label)
+
+        output_field_layout = QHBoxLayout()
         self.output_dir_line_edit = QLineEdit()
         self.output_dir_line_edit.setReadOnly(True)
+        self.output_dir_line_edit.setStyleSheet("color: black;")
         self.browse_output_button = QPushButton("Browse")
         self.browse_output_button.clicked.connect(self.set_output_directory)
-        output_directory_layout.addWidget(output_label)
-        output_directory_layout.addWidget(self.output_dir_line_edit)
-        output_directory_layout.addWidget(self.browse_output_button)
-        file_tree_layout.addLayout(output_directory_layout)
+        output_field_layout.addWidget(self.output_dir_line_edit)
+        output_field_layout.addWidget(self.browse_output_button)
+        output_directory_wrapper.addLayout(output_field_layout)
+        file_tree_layout.addLayout(output_directory_wrapper)
 
         # Run Button
         self.run_button = QPushButton("Run")
