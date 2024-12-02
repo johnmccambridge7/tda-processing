@@ -620,12 +620,15 @@ class MainWindow(QMainWindow):
         pass
 
     def handle_save_finished(self, output_path):
-        # Add the saved file to the Output Directory in the output file tree
-        file_name = os.path.basename(output_path)
-        file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
-        formatted_size = f"{file_size:.2f} MB"
-        item = QTreeWidgetItem(self.output_file_tree, [file_name, formatted_size, "Saved"])
-        self.output_file_status_items[output_path] = (item, None)
+        # Find the root item (there should only be one)
+        root = self.output_file_tree.topLevelItem(0)
+        if root:
+            # Add the saved file under the root directory
+            file_name = os.path.basename(output_path)
+            file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
+            formatted_size = f"{file_size:.2f} MB"
+            item = QTreeWidgetItem(root, [file_name, formatted_size, "Saved"])
+            self.output_file_status_items[output_path] = (item, None)
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
