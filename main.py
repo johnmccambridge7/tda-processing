@@ -357,7 +357,7 @@ class MainWindow(QMainWindow):
         
         # Add Directory button as first row
         add_dir_item = QTreeWidgetItem(self.input_file_tree)
-        add_dir_item.setText(0, "Add Directory")
+        add_dir_item.setText(0, "+ Add New Input Directory")
         add_dir_item.setToolTip(0, "Click to add a new input directory")
         
         # Style the "Add Directory" row
