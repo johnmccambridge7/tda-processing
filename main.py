@@ -144,7 +144,7 @@ class ImageSaverWorker(Thread):
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
-                'spacing': self.scaling_params['zstep'] ## need to save this during metaextract!
+                'spacing': self.scaling_params['zstep'] ## need to save this during meta extract!
             }
 
             # Prepare output directory
