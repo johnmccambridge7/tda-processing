@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(header_layout)
 
-        # File Tree and Run Button
+        # File Tree
         file_tree_group = QGroupBox("Directories")
         file_tree_layout = QVBoxLayout()
 
@@ -281,18 +281,18 @@ class MainWindow(QMainWindow):
         self.file_tree.itemClicked.connect(self.handle_item_clicked)
         file_tree_layout.addWidget(self.file_tree)
 
-        # Populate file tree with the root directories
+        # Populate file tree with the root directories and directory selectors
         self.populate_file_tree()
+
+        file_tree_group.setLayout(file_tree_layout)
+        main_layout.addWidget(file_tree_group)
 
         # Run Button
         self.run_button = QPushButton("Run")
         self.run_button.setObjectName("runButton")
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_processing)
-        file_tree_layout.addWidget(self.run_button)
-
-        file_tree_group.setLayout(file_tree_layout)
-        main_layout.addWidget(file_tree_group)
+        main_layout.addWidget(self.run_button)
 
         # Previews & Overview
         previews_overview_group = QGroupBox("Previews & Overview")
@@ -363,6 +363,18 @@ class MainWindow(QMainWindow):
         main_widget.setLayout(main_layout)
 
     def populate_file_tree(self):
+        # Add directory selectors as top-level items
+        input_dir_item = QTreeWidgetItem(self.file_tree, ["Input Directory"])
+        input_dir_item.setData(0, Qt.UserRole, "input")
+        input_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+        input_dir_item.setExpanded(False)
+
+        output_dir_item = QTreeWidgetItem(self.file_tree, ["Output Directory"])
+        output_dir_item.setData(0, Qt.UserRole, "output")
+        output_dir_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+        output_dir_item.setExpanded(False)
+
+        # Populate file tree with the root directories
         drives = self.get_drives()
         for drive in drives:
             drive_item = QTreeWidgetItem(self.file_tree, [drive])
@@ -373,7 +385,6 @@ class MainWindow(QMainWindow):
         if sys.platform == "win32":
             import string
             drives = []
-            bitmask = os.sys.getwindowsversion().dwDriveType
             for letter in string.ascii_uppercase:
                 if os.path.exists(f"{letter}:\\"):
                     drives.append(f"{letter}:\\")
@@ -382,15 +393,23 @@ class MainWindow(QMainWindow):
             return ["/"]
 
     def handle_item_clicked(self, item, column):
+        role = item.data(0, Qt.UserRole)
         path = self.get_full_path(item)
-        if os.path.isdir(path):
-            if self.is_input_directory_selected:
-                self.input_dir = path
+
+        if role == "input":
+            selected_dir = QFileDialog.getExistingDirectory(self, "Select Input Directory", self.input_dir or "")
+            if selected_dir:
+                self.input_dir = selected_dir
                 self.update_run_button_state()
                 self.populate_input_files()
-            elif self.is_output_directory_selected:
-                self.selected_output_dir = path
+        elif role == "output":
+            selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
+            if selected_dir:
+                self.selected_output_dir = selected_dir
                 self.update_run_button_state()
+        else:
+            # Handle other directory clicks if necessary
+            pass
 
     def get_full_path(self, item):
         path = []
@@ -425,8 +444,9 @@ class MainWindow(QMainWindow):
                 self.processing_file_tree.setItemWidget(item, 2, progress_bar)
                 self.file_status_items[file_path] = (item, progress_bar)
 
-        output_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Output Directory: {self.selected_output_dir}"])
-        output_dir_item.setExpanded(True)
+        if self.selected_output_dir:
+            output_dir_item = QTreeWidgetItem(self.processing_file_tree, [f"Output Directory: {self.selected_output_dir}"])
+            output_dir_item.setExpanded(True)
 
     def update_run_button_state(self):
         if self.input_dir and self.selected_output_dir:
