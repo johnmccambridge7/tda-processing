@@ -125,6 +125,12 @@ class ImageSaverWorker(Thread):
                 [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
+            # Ensure we have 3 channels for RGB
+            if rgb_image.shape[0] < 3:
+                # Pad with zeros if we have fewer than 3 channels
+                padding = [(0, 3 - rgb_image.shape[0])] + [(0, 0)] * (rgb_image.ndim - 1)
+                rgb_image = np.pad(rgb_image, padding, mode='constant')
+            
             # Reshape to (T, Z, C, Y, X, S) order for ImageJ hyperstack
             # Since we don't have T and S dimensions, we'll add them as singleton dimensions
             rgb_image = rgb_image[np.newaxis, :, :, :, :, np.newaxis]  # Add T and S dimensions
