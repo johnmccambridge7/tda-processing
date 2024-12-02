@@ -406,6 +406,7 @@ class MainWindow(QMainWindow):
     def populate_input_files(self):
         self.input_file_tree.clear()
         self.file_status_items = {}
+        self.processing_complete = False  # Add state tracking
 
         if self.input_dir:
             # Create root directory item
@@ -413,12 +414,13 @@ class MainWindow(QMainWindow):
             root_item = QTreeWidgetItem(self.input_file_tree, [dir_name, "", ""])
             root_item.setExpanded(True)  # Expand by default
             
-            # Add run button to directory row
-            self.run_button = QPushButton("Run")
-            self.run_button.setObjectName("runButton")
-            self.run_button.setEnabled(True)
-            self.run_button.clicked.connect(self.handle_run_button_click)
-            self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
+            # Add run button to directory row if processing is not complete
+            if not hasattr(self, 'processing_complete') or not self.processing_complete:
+                self.run_button = QPushButton("Run")
+                self.run_button.setObjectName("runButton")
+                self.run_button.setEnabled(True)
+                self.run_button.clicked.connect(self.handle_run_button_click)
+                self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
             
             # Find all compatible files
             self.to_process = [
@@ -610,9 +612,11 @@ class MainWindow(QMainWindow):
                 self.run_processing()
             else:
                 QMessageBox.information(self, "Processing Complete", "All files have been processed!")
-                # Hide the run button when all files are processed
+                # Mark processing as complete and hide the run button
+                self.processing_complete = True
                 if self.run_button:
                     self.run_button.hide()
+                    self.run_button = None  # Clear the reference
 
     def save_combined_image(self):
         # This method is no longer called directly from worker_finished
