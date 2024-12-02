@@ -445,10 +445,16 @@ class MainWindow(QMainWindow):
             button.hide()  # Hide the Set Output button after selection
             self.populate_output_files()
             # Start processing immediately after output directory is selected
-            self.run_processing()
+            self.run_processing(input_dir)
 
-    def run_processing(self):
-        if not self.to_process:
+    def run_processing(self, selected_input_dir=None):
+        # If a specific input directory is selected, only process files from that directory
+        if selected_input_dir:
+            files_to_process = [f for f in self.to_process if os.path.commonpath([selected_input_dir, f]) == selected_input_dir]
+        else:
+            files_to_process = self.to_process
+
+        if not files_to_process:
             QMessageBox.information(self, "No Files to Process", "No files selected for processing.")
             return
 
@@ -458,7 +464,12 @@ class MainWindow(QMainWindow):
         for label in self.reference_labels:
             label.clear()
 
-        self.current_file = self.to_process.pop(0)
+        self.current_file = files_to_process[0]
+        # Only remove from to_process if it's the selected directory
+        if selected_input_dir:
+            self.to_process.remove(self.current_file)
+        else:
+            self.to_process.pop(0)
 
         # Update the input file tree selection
         self.input_file_tree.setCurrentItem(None)
