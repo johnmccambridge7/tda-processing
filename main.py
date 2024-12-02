@@ -125,17 +125,8 @@ class ImageSaverWorker(Thread):
                 [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
                  for i in range(3)], axis=0
             )
-            # Ensure we have 3 channels for RGB
-            if rgb_image.shape[0] < 3:
-                # Pad with zeros if we have fewer than 3 channels
-                padding = [(0, 3 - rgb_image.shape[0])] + [(0, 0)] * (rgb_image.ndim - 1)
-                rgb_image = np.pad(rgb_image, padding, mode='constant')
-            
-            # Reshape to (T, Z, C, Y, X, S) order for ImageJ hyperstack
-            # Since we don't have T and S dimensions, we'll add them as singleton dimensions
-            rgb_image = rgb_image[np.newaxis, :, :, :, :, np.newaxis]  # Add T and S dimensions
-            rgb_image = rgb_image.transpose((0, 1, 3, 4, 2, 5))  # Reorder to TZCYXS
-            
+            rgb_image = rgb_image.transpose((1, 0, 2, 3))  # Convert to ZYX(RGB)
+
             # Convert to uint8 for saving
             tiff = rgb_image.astype(np.uint8)
 
@@ -146,17 +137,14 @@ class ImageSaverWorker(Thread):
             resolution_x = float(self.scaling_params.get('resolution', '1.0'))
             resolution_y = float(self.scaling_params.get('resolution', '1.0'))
 
-            # Metadata for ImageJ hyperstack
+            # Metadata for saving the image
+
+            # Prepare metadata
             image_metadata = {
-                'axes': 'TZCYXS',  # Specify correct dimension order
-                'spacing': voxel_size_z,  # Z spacing in microns
-                'unit': 'micron',
-                'finterval': 1,
-                'fps': 1.0,
-                'channels': 3,  # RGB channels
-                'slices': tiff.shape[0],  # Z slices
-                'frames': 1,  # Single timepoint
-                'hyperstack': True
+                'axes': 'ZCYX',
+                'mode': 'color',
+                'unit': 'um',
+                'spacing': self.scaling_params['zstep'] ## need to save this during metaextract!
             }
 
             # Prepare output directory
@@ -167,15 +155,13 @@ class ImageSaverWorker(Thread):
             filename = f"{base_name}_PROCESSED.tiff"
             output_path = os.path.join(self.output_dir, filename)
 
-            # Save as ImageJ hyperstack
+            # Save the image using tifffile
             imwrite(
                 output_path,
                 tiff,
-                imagej=True,
                 resolution=(resolution_x, resolution_y),
-                metadata=image_metadata,
-                photometric='rgb',  # Specify RGB photometric interpretation
-                planarconfig='contig'  # Contiguous RGB channels
+                imagej=True,
+                metadata=image_metadata
             )
 
             # Emit success signal
