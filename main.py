@@ -326,23 +326,27 @@ class MainWindow(QMainWindow):
         previews_overview_layout.addLayout(previews_layout)
 
 
-        # Input Directory Selection
-        input_directory_wrapper = QVBoxLayout()
+        # Main content grid
+        content_grid = QGridLayout()
+        
+        # Row 0: Input Directory Selection
+        input_directory_wrapper = QHBoxLayout()
         input_directory_wrapper.setSpacing(5)
-
-        input_field_layout = QHBoxLayout()
         self.input_dir_line_edit = QLineEdit()
         self.input_dir_line_edit.setReadOnly(True)
         self.input_dir_line_edit.setStyleSheet("color: black;")
         self.input_dir_line_edit.setPlaceholderText("Select Input Directory")
         self.browse_input_button = QPushButton("Browse")
         self.browse_input_button.clicked.connect(self.set_input_directory)
-        input_field_layout.addWidget(self.input_dir_line_edit)
-        input_field_layout.addWidget(self.browse_input_button)
-        input_directory_wrapper.addLayout(input_field_layout)
-        previews_overview_layout.addLayout(input_directory_wrapper)
+        input_directory_wrapper.addWidget(self.input_dir_line_edit)
+        input_directory_wrapper.addWidget(self.browse_input_button)
+        
+        # Add input directory selection to grid
+        input_dir_widget = QWidget()
+        input_dir_widget.setLayout(input_directory_wrapper)
+        content_grid.addWidget(input_dir_widget, 0, 0, 1, 2)  # Row 0, Col 0, Span 1 row, 2 cols
 
-        # File Trees Layout
+        # Row 1: File Trees Layout (in columns)
         file_trees_layout = QHBoxLayout()
 
         input_file_tree_group = QGroupBox("Input")
