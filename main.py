@@ -362,21 +362,6 @@ class MainWindow(QMainWindow):
         output_file_tree_group = QGroupBox("Output")
         output_file_tree_layout = QVBoxLayout()
 
-        # Output Directory Selection
-        output_directory_wrapper = QVBoxLayout()
-        output_directory_wrapper.setSpacing(5)
-
-        output_field_layout = QHBoxLayout()
-        self.output_dir_line_edit = QLineEdit()
-        self.output_dir_line_edit.setReadOnly(True)
-        self.output_dir_line_edit.setStyleSheet("color: black;")
-        self.output_dir_line_edit.setPlaceholderText("Select Output Directory")
-        self.browse_output_button = QPushButton("Browse")
-        self.browse_output_button.clicked.connect(self.set_output_directory)
-        output_field_layout.addWidget(self.output_dir_line_edit)
-        output_field_layout.addWidget(self.browse_output_button)
-        output_directory_wrapper.addLayout(output_field_layout)
-        output_file_tree_layout.addLayout(output_directory_wrapper)
 
         # Output File Tree Widget
         self.output_file_tree = QTreeWidget()
@@ -416,10 +401,10 @@ class MainWindow(QMainWindow):
             
             # Add run button to directory row if processing is not complete
             if not hasattr(self, 'processing_complete') or not self.processing_complete:
-                self.run_button = QPushButton("Run")
+                self.run_button = QPushButton("Select Output Dir")
                 self.run_button.setObjectName("runButton")
                 self.run_button.setEnabled(True)
-                self.run_button.clicked.connect(self.handle_run_button_click)
+                self.run_button.clicked.connect(self.handle_output_selection)
                 self.input_file_tree.setItemWidget(root_item, 2, self.run_button)
             
             # Find all compatible files
@@ -445,6 +430,12 @@ class MainWindow(QMainWindow):
     def populate_output_files(self):
         self.output_file_tree.clear()
         self.output_file_status_items = {}
+        
+        if self.selected_output_dir:
+            # Create root directory item for output
+            dir_name = os.path.basename(self.selected_output_dir)
+            root_item = QTreeWidgetItem(self.output_file_tree, [dir_name, "", ""])
+            root_item.setExpanded(True)
 
     def update_run_button_state(self):
         if hasattr(self, 'run_button') and self.run_button:
@@ -453,10 +444,14 @@ class MainWindow(QMainWindow):
             else:
                 self.run_button.setEnabled(False)
 
-    def handle_run_button_click(self):
-        self.run_button.setText("Running...")
-        self.run_button.setEnabled(False)
-        self.run_processing()
+    def handle_output_selection(self):
+        selected_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.selected_output_dir or "")
+        if selected_dir:
+            self.selected_output_dir = selected_dir
+            self.populate_output_files()
+            self.run_button.setText("Running...")
+            self.run_button.setEnabled(False)
+            self.run_processing()
 
     def run_processing(self):
         if not self.to_process:
