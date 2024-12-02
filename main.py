@@ -388,16 +388,9 @@ class MainWindow(QMainWindow):
         self.to_process = []
 
         if not hasattr(self, 'processing_complete') or not self.processing_complete:
-            config_button = QPushButton("Set Output Folder")
-            config_button.setObjectName("runButton")
-            config_button.setEnabled(True)
-            config_button.clicked.connect(self.handle_output_selection)
-            
-            # Add config button to header
+            # Create header item
             header_item = QTreeWidgetItem(self.input_file_tree)
             header_item.setText(0, "Input Directories")
-            self.input_file_tree.setItemWidget(header_item, 2, config_button)
-            self.run_button = config_button
 
         for input_dir in self.input_directories:
             # Create directory item
@@ -407,10 +400,10 @@ class MainWindow(QMainWindow):
             dir_item.setText(1, os.path.basename(os.path.dirname(input_dir)))  # Show parent folder name
             dir_item.setToolTip(1, input_dir)  # Full path as tooltip
             
-            # Add remove button for directory
-            remove_button = QPushButton("Remove")
-            remove_button.clicked.connect(lambda d=input_dir, item=dir_item: self.remove_input_directory(d, item))
-            self.input_file_tree.setItemWidget(dir_item, 2, remove_button)
+            # Add set output button for directory
+            set_output_button = QPushButton("Set Output")
+            set_output_button.clicked.connect(self.handle_output_selection)
+            self.input_file_tree.setItemWidget(dir_item, 2, set_output_button)
             
             # Find and add files for this directory
             files = []
