@@ -184,6 +184,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid #CCCCCC;
                 border-radius: 3px;
                 background-color: #FFFFFF;
+                color: black;
             }
             QGroupBox {
                 border: 1px solid #444444;
@@ -321,16 +322,20 @@ class MainWindow(QMainWindow):
         file_tree_layout = QVBoxLayout()
 
         # Directory Selection Inputs
-        input_directory_layout = QHBoxLayout()
+        input_directory_wrapper = QVBoxLayout()
         input_label = QLabel("Input Directory:")
+        input_directory_wrapper.addWidget(input_label)
+
+        input_field_layout = QHBoxLayout()
         self.input_dir_line_edit = QLineEdit()
         self.input_dir_line_edit.setReadOnly(True)
+        self.input_dir_line_edit.setStyleSheet("color: black;")
         self.browse_input_button = QPushButton("Browse")
         self.browse_input_button.clicked.connect(self.set_input_directory)
-        input_directory_layout.addWidget(input_label)
-        input_directory_layout.addWidget(self.input_dir_line_edit)
-        input_directory_layout.addWidget(self.browse_input_button)
-        file_tree_layout.addLayout(input_directory_layout)
+        input_field_layout.addWidget(self.input_dir_line_edit)
+        input_field_layout.addWidget(self.browse_input_button)
+        input_directory_wrapper.addLayout(input_field_layout)
+        file_tree_layout.addLayout(input_directory_wrapper)
 
         output_directory_layout = QHBoxLayout()
         output_label = QLabel("Output Directory:")
