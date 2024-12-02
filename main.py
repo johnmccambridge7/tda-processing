@@ -585,7 +585,7 @@ class MainWindow(QMainWindow):
         # Initialize tracking variables
         self.processed_channels = {}
         self.workers_finished = 0
-        self.expected_total = 3  # Number of channels
+        # expected_total will be set when starting workers based on actual channels
 
         # Reset progress tracking
         self.total_progress = 0
@@ -601,9 +601,14 @@ class MainWindow(QMainWindow):
             self.show_error("Output directory not set for the input directory.")
             return
 
+        # Get number of channels from the image
+        image_data = imread(self.current_file)
+        num_channels = image_data.shape[1]
+        self.expected_total = num_channels  # Update expected total
+
         # Start workers for each channel
         self.workers = []
-        for channel_idx in range(3):
+        for channel_idx in range(num_channels):
             worker = ImageProcessorWorker(
                 file_path=self.current_file,
                 reference_channel=reference_channel,
