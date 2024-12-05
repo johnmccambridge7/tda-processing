@@ -306,6 +306,21 @@ class MainWindow(QMainWindow):
         # Header
         header_layout = QHBoxLayout()
 
+        # Arcade button
+        self.arcade_btn = QPushButton("Enter Arcade")
+        self.arcade_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                max-width: 100px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        self.arcade_btn.clicked.connect(self.toggle_arcade)
+        header_layout.addWidget(self.arcade_btn)
+
         # Title and instructions
         title_layout = QVBoxLayout()
         title_label = QLabel("TDA Processing App")
@@ -391,90 +406,6 @@ class MainWindow(QMainWindow):
 
         previews_overview_layout.addLayout(grid_layout)
 
-        # Games container with toggle
-        games_container = QFrame()
-        games_container.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        games_container.setStyleSheet("""
-            QFrame {
-                background-color: #3E3E3E;
-                border-radius: 5px;
-                padding: 10px;
-            }
-        """)
-        games_layout = QVBoxLayout(games_container)
-        
-        # Header with toggle button
-        games_header = QHBoxLayout()
-        games_title = QLabel("Arcade Section")
-        games_title.setStyleSheet("color: white; font-weight: bold;")
-        
-        self.toggle_games_btn = QPushButton("▼")
-        self.toggle_games_btn.setFixedSize(20, 20)
-        self.toggle_games_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: white;
-                border: none;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255,255,255,0.1);
-            }
-        """)
-        self.toggle_games_btn.clicked.connect(self.toggle_games_section)
-        
-        games_header.addWidget(games_title)
-        games_header.addWidget(self.toggle_games_btn)
-        games_header.addStretch()
-        games_layout.addLayout(games_header)
-        
-        # Games content container
-        self.games_content = QWidget()
-        games_content_layout = QVBoxLayout(self.games_content)
-        
-        # Games grid layout (2x2)
-        games_grid = QGridLayout()
-        
-        # Game types with their titles
-        game_types = [
-            (SnakeGame, "Snake (Arrow keys)"),
-            (SubwayGame, "Subway (←→ + Space)"),
-            (RacingGame, "Racing (←→↑↓ + Space)"),
-            (FlightSim3D, "Flight Sim (WASD/QE + Space/Ctrl + G/F)")
-        ]
-        
-        # Create one instance of each game in a 2x2 grid
-        for i, (game_class, title) in enumerate(game_types):
-            row = i // 2
-            col = i % 2
-            
-            container = QWidget()
-            layout = QVBoxLayout(container)
-            
-            title_label = QLabel(title)
-            title_label.setStyleSheet("color: white;")
-            title_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(title_label)
-            
-            game_instance = game_class()
-            layout.addWidget(game_instance)
-            
-            # Store game instance as attribute
-            setattr(self, game_class.__name__.lower(), game_instance)
-            
-            games_grid.addWidget(container, row, col)
-        
-        games_content_layout.addLayout(games_grid)
-        
-        game_instructions = QLabel("Play while processing!\nR to restart either game")
-        game_instructions.setStyleSheet("color: white;")
-        game_instructions.setAlignment(Qt.AlignCenter)
-        games_content_layout.addWidget(game_instructions)
-        
-        games_layout.addWidget(self.games_content)
-        self.games_content.hide()  # Start with games hidden
-        
-        previews_overview_layout.addWidget(games_container)
 
         previews_overview_group.setLayout(previews_overview_layout)
         main_layout.addWidget(previews_overview_group)
@@ -1007,11 +938,69 @@ class MainWindow(QMainWindow):
             self.output_dir_line_edit.setText(selected_dir)
             self.populate_output_files()
 
-    def toggle_games_section(self):
-        """Toggle the visibility of the games section"""
-        self.games_expanded = not self.games_expanded
-        self.games_content.setVisible(self.games_expanded)
-        self.toggle_games_btn.setText("▼" if self.games_expanded else "▶")
+    def create_arcade_window(self):
+        """Create the arcade window"""
+        self.arcade_window = QMainWindow()
+        self.arcade_window.setWindowTitle("Processing Arcade")
+        self.arcade_window.setStyleSheet("background-color: #2E2E2E;")
+        
+        central_widget = QWidget()
+        self.arcade_window.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        
+        # Games grid layout (2x2)
+        games_grid = QGridLayout()
+        
+        # Game types with their titles
+        game_types = [
+            (SnakeGame, "Snake (Arrow keys)"),
+            (SubwayGame, "Subway (←→ + Space)"),
+            (RacingGame, "Racing (←→↑↓ + Space)"),
+            (FlightSim3D, "Flight Sim (WASD/QE + Space/Ctrl + G/F)")
+        ]
+        
+        # Create one instance of each game in a 2x2 grid
+        for i, (game_class, title) in enumerate(game_types):
+            row = i // 2
+            col = i % 2
+            
+            container = QWidget()
+            container_layout = QVBoxLayout(container)
+            
+            title_label = QLabel(title)
+            title_label.setStyleSheet("color: white;")
+            title_label.setAlignment(Qt.AlignCenter)
+            container_layout.addWidget(title_label)
+            
+            game_instance = game_class()
+            container_layout.addWidget(game_instance)
+            
+            # Store game instance as attribute
+            setattr(self, game_class.__name__.lower(), game_instance)
+            
+            games_grid.addWidget(container, row, col)
+        
+        layout.addLayout(games_grid)
+        
+        game_instructions = QLabel("Play while processing!\nR to restart either game")
+        game_instructions.setStyleSheet("color: white;")
+        game_instructions.setAlignment(Qt.AlignCenter)
+        layout.addWidget(game_instructions)
+        
+        # Set a reasonable size for the arcade window
+        self.arcade_window.resize(800, 800)
+
+    def toggle_arcade(self):
+        """Toggle the arcade window visibility"""
+        if not hasattr(self, 'arcade_window'):
+            self.create_arcade_window()
+        
+        if self.arcade_window.isVisible():
+            self.arcade_window.hide()
+            self.arcade_btn.setText("Enter Arcade")
+        else:
+            self.arcade_window.show()
+            self.arcade_btn.setText("Exit Arcade")
 
 
 def main():
