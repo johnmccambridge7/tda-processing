@@ -11,8 +11,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
     QCheckBox, QLineEdit, QGridLayout, QMessageBox,
     QGroupBox, QTabWidget, QSizePolicy, QTreeWidget, QTreeWidgetItem, QHeaderView,
-    QTreeWidgetItemIterator
+    QTreeWidgetItemIterator, QFrame
 )
+from snake_game import SnakeGame
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -385,6 +386,33 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(output_file_tree_group, 1, 1)
 
         previews_overview_layout.addLayout(grid_layout)
+
+        # Add Snake game
+        game_container = QFrame()
+        game_container.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        game_container.setStyleSheet("""
+            QFrame {
+                background-color: #3E3E3E;
+                border-radius: 5px;
+                padding: 10px;
+            }
+        """)
+        game_layout = QVBoxLayout(game_container)
+        
+        game_title = QLabel("Mini-Game (Use arrow keys)")
+        game_title.setStyleSheet("color: white; font-weight: bold;")
+        game_title.setAlignment(Qt.AlignCenter)
+        game_layout.addWidget(game_title)
+        
+        self.snake_game = SnakeGame()
+        game_layout.addWidget(self.snake_game)
+        
+        game_instructions = QLabel("Play while processing!\nR to restart")
+        game_instructions.setStyleSheet("color: white;")
+        game_instructions.setAlignment(Qt.AlignCenter)
+        game_layout.addWidget(game_instructions)
+        
+        previews_overview_layout.addWidget(game_container)
 
         previews_overview_group.setLayout(previews_overview_layout)
         main_layout.addWidget(previews_overview_group)
