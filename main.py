@@ -138,9 +138,16 @@ class ImageSaverWorker(Thread):
             lut_indices = [1, 0, 2]  # Swap red and green LUTs
 
             # Create LUTs based on the rearranged channel colors
+            # Define RGB colors for each channel
+            channel_colors = [
+                [255, 0, 0],    # Red for channel 0
+                [0, 255, 0],    # Green for channel 1
+                [0, 0, 255]     # Blue for channel 2
+            ]
+            
             luts = []
             for idx in lut_indices:
-                color = self.processed_channels[idx]
+                color = channel_colors[idx]
                 lut = np.zeros((256, 3), dtype=np.uint8)
                 for i in range(3):
                     lut[:, i] = np.linspace(0, color[i], 256, dtype=np.uint8)
