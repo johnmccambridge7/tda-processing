@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItemIterator, QFrame
 )
 from snake_game import SnakeGame
+from subway_game import SubwayGame
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -387,32 +388,60 @@ class MainWindow(QMainWindow):
 
         previews_overview_layout.addLayout(grid_layout)
 
-        # Add Snake game
-        game_container = QFrame()
-        game_container.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
-        game_container.setStyleSheet("""
+        # Games container
+        games_container = QFrame()
+        games_container.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        games_container.setStyleSheet("""
             QFrame {
                 background-color: #3E3E3E;
                 border-radius: 5px;
                 padding: 10px;
             }
         """)
-        game_layout = QVBoxLayout(game_container)
+        games_layout = QVBoxLayout(games_container)
         
-        game_title = QLabel("Mini-Game (Use arrow keys)")
-        game_title.setStyleSheet("color: white; font-weight: bold;")
-        game_title.setAlignment(Qt.AlignCenter)
-        game_layout.addWidget(game_title)
+        games_title = QLabel("Mini-Games")
+        games_title.setStyleSheet("color: white; font-weight: bold;")
+        games_title.setAlignment(Qt.AlignCenter)
+        games_layout.addWidget(games_title)
+        
+        # Games grid layout
+        games_grid = QGridLayout()
+        
+        # Snake game
+        snake_container = QWidget()
+        snake_layout = QVBoxLayout(snake_container)
+        snake_title = QLabel("Snake (Arrow keys)")
+        snake_title.setStyleSheet("color: white;")
+        snake_title.setAlignment(Qt.AlignCenter)
+        snake_layout.addWidget(snake_title)
         
         self.snake_game = SnakeGame()
-        game_layout.addWidget(self.snake_game)
+        snake_layout.addWidget(self.snake_game)
         
-        game_instructions = QLabel("Play while processing!\nR to restart")
+        games_grid.addWidget(snake_container, 0, 0)
+        
+        # Subway game
+        subway_container = QWidget()
+        subway_layout = QVBoxLayout(subway_container)
+        subway_title = QLabel("Subway (←→ + Space)")
+        subway_title.setStyleSheet("color: white;")
+        subway_title.setAlignment(Qt.AlignCenter)
+        subway_layout.addWidget(subway_title)
+        
+        self.subway_game = SubwayGame()
+        subway_layout.addWidget(self.subway_game)
+        
+        games_grid.addWidget(subway_container, 0, 1)
+        
+        games_layout.addLayout(games_grid)
+        
+        game_instructions = QLabel("Play while processing!\nR to restart either game")
         game_instructions.setStyleSheet("color: white;")
         game_instructions.setAlignment(Qt.AlignCenter)
-        game_layout.addWidget(game_instructions)
+        games_layout.addWidget(game_instructions)
         
-        previews_overview_layout.addWidget(game_container)
+        previews_overview_layout.addWidget(games_container)
 
         previews_overview_group.setLayout(previews_overview_layout)
         main_layout.addWidget(previews_overview_group)
