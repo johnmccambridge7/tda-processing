@@ -99,86 +99,44 @@ class ImageSaverWorker(Thread):
 
     def run(self):
         try:
-            import numpy as np
-            from tifffile import imwrite
-            import os
-
             # Get channel order from scaling params
             channel_order = self.scaling_params.get('channel_order', [])
             if not channel_order:
                 # Fallback to sequential order if no channel order specified
                 channel_order = list(range(len(self.processed_channels)))
 
-            # Ensure we have at least one channel
-            if len(channel_order) == 0:
-                self.signals.save_error.emit("No channels available to create an image.")
+            # Ensure we have enough channels
+            if len(channel_order) < 2:
+                self.signals.save_error.emit("Insufficient channels to create an RGB image.")
                 return
 
-            # Handle cases with fewer than three channels by repeating the last channel
-            while len(channel_order) < 3:
-                channel_order.append(channel_order[-1])
+            # Validate channel count
+            if len(self.processed_channels) != len(set(channel_order)):
+                self.signals.save_error.emit(
+                    f"Channel count mismatch: Expected {len(set(channel_order))} channels but got {len(self.processed_channels)}.")
+                return
 
-            # Arrange the processed channels according to the channel order
-            ordered_processed = [self.processed_channels[idx] for idx in channel_order]
+            # Create RGB image using the channel order from metadata
+            ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
+            rgb_image = np.stack(
+                [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
+                 for i in range(len(self.processed_channels))], axis=0
+            )
+            rgb_image = rgb_image.transpose((1, 0, 2, 3))  # Convert to ZYX(RGB)
 
-            # Stack the channels to create a data array with shape (C, Z, Y, X)
-            data_array = np.stack(ordered_processed, axis=0)  # Shape: (C, Z, Y, X)
-
-            # Transpose the data array to match 'axes': 'ZCYX'
-            data_array = np.transpose(data_array, (1, 0, 2, 3))  # Shape: (Z, C, Y, X)
-
-            # Convert data to uint8 for saving
-            tiff = data_array.astype(np.uint8)
+            # Convert to uint8 for saving
+            tiff = rgb_image.astype(np.uint8)
 
             # Correct voxel sizes and resolution
             resolution_x = float(self.scaling_params.get('resolution', '1.0'))
             resolution_y = float(self.scaling_params.get('resolution', '1.0'))
-            channel_names = ['Ch3-T1', 'Ch3-T2', 'Ch3-T3']
-
-            lut_indices = [1, 0, 2]  # Swap red and green LUTs
-
-            # Create LUTs based on the rearranged channel colors
-            # Define RGB colors for each channel
-            channel_colors = [
-                [255, 0, 0],    # Red for channel 0
-                [0, 255, 0],    # Green for channel 1
-                [0, 0, 255]     # Blue for channel 2
-            ]
-            
-            luts = []
-            for idx in lut_indices:
-                color = channel_colors[idx]
-                lut = np.zeros((256, 3), dtype=np.uint8)
-                for i in range(3):
-                    lut[:, i] = np.linspace(0, color[i], 256, dtype=np.uint8)
-                luts.append(lut)
-
-            # Define channel colors in RGB format
-            # channel_colors = [
-            #     [0, 255, 0],  # Green
-            #     [255, 0, 0],  # Red
-            #     [0, 0, 255],  # Blue
-            # ]
-
-            # Create LUTs for each channel
-            # luts = []
-            # for color in channel_colors:
-            #     lut = np.zeros((256, 3), dtype=np.uint8)
-            #     for i in range(3):
-            #         if color[i] > 0:
-            #             lut[:, i] = np.linspace(0, color[i], 256, dtype=np.uint8)
-            #     luts.append(lut)
 
             # Prepare metadata
-
-            # what is exact schema here thats required?
             image_metadata = {
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
                 'spacing': self.scaling_params['z-step'],
-                'labels': channel_names,
-                'luts': luts
             }
 
             # Prepare output directory
