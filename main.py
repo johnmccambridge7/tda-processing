@@ -152,13 +152,29 @@ class ImageSaverWorker(Thread):
             filename = f"{base_name}_PROCESSED.tiff"
             output_path = os.path.join(self.output_dir, filename)
 
-            # Save the image using tifffile
+            # Save the image using tifffile with ImageJ metadata
             imwrite(
                 output_path,
                 tiff,
                 resolution=(resolution_x, resolution_y),
                 imagej=True,
-                metadata=image_metadata,
+                metadata={
+                    **image_metadata,
+                    'ImageJ': {
+                        'Channels': 3,
+                        'Images': tiff.shape[0],  # Number of Z slices
+                        'Slices': tiff.shape[0],  # Same as Images for Z-stack
+                        'Frames': 1,
+                        'hyperstack': True,
+                        'mode': 'composite',
+                        'loop': False,
+                        'LUTs': [
+                            [0, 255, 0],  # Green
+                            [255, 0, 0],  # Red 
+                            [0, 0, 255]   # Blue
+                        ]
+                    }
+                }
             )
 
             # Emit success signal
