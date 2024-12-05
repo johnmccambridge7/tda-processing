@@ -38,10 +38,14 @@ def process_channel(channel, channel_idx, progress_callback, preview_callback, r
         normalized.append(median_filter(matched, size=3))
 
         # Create RGB image with the channel in the correct position based on channel_idx
-        # channel_idx mapping: 0->Red, 1->Green, 2->Blue
+        # Organize channels as: Green (idx 0), Red (idx 1), Blue (idx 2)
         color_image = np.zeros((channel[reference].shape[0], channel[reference].shape[1], 3), dtype=np.uint8)
-        # Map the channel to the correct color position
-        color_map = {1: 0, 0: 1, 2: 2}  # Maps [Green, Red, Blue] order
+        # Map input channel index to RGB position (R=0, G=1, B=2)
+        color_map = {
+            0: 1,  # First channel (0) goes to Green (1)
+            1: 0,  # Second channel (1) goes to Red (0)
+            2: 2   # Third channel (2) stays as Blue (2)
+        }
         color_position = color_map.get(channel_idx, channel_idx)
         color_image[:, :, color_position] = normalized[-1]
 
