@@ -219,8 +219,8 @@ class SubwayGame(QWidget):
                 self.powerups.remove(powerup)
             else:
                 powerup_rect = QRect(
-                    (powerup[0] * lane_width) + (lane_width // 4),
-                    powerup[1],
+                    int((powerup[0] * lane_width) + (lane_width // 4)),
+                    int(powerup[1]),
                     lane_width // 3,
                     lane_width // 3
                 )
