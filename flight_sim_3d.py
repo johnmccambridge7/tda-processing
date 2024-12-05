@@ -384,9 +384,9 @@ class FlightSim3D(QOpenGLWidget):
         """Process control inputs"""
         # Pitch (W/S)
         if Qt.Key_W in self.keys_pressed:
-            self.pitch_rate = -1
-        elif Qt.Key_S in self.keys_pressed:
             self.pitch_rate = 1
+        elif Qt.Key_S in self.keys_pressed:
+            self.pitch_rate = -1
         else:
             self.pitch_rate = 0
             
