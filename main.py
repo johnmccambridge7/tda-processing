@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 from snake_game import SnakeGame
 from subway_game import SubwayGame
 from racing_game import RacingGame
-from flight_sim import FlightSim
+from flight_sim_3d import FlightSim3D
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow):
         fps_title.setAlignment(Qt.AlignCenter)
         fps_layout.addWidget(fps_title)
         
-        self.flight_sim = FlightSim()
+        self.flight_sim = FlightSim3D()
         fps_layout.addWidget(self.flight_sim)
         
         games_grid.addWidget(fps_container, 0, 3)
