@@ -683,57 +683,60 @@ class MainWindow(QMainWindow):
     def extract_lsm_metadata(self, file_path):
         try:
             with TiffFile(file_path) as tif:
-                lsm_meta = tif.lsm_metadata
-                if lsm_meta is None:
+                if not tif.lsm_metadata:
                     return {}
 
-                source_metadata: LSMMetadata = LSMMetadata(**lsm_meta)
-                # Extract voxel size and convert from meters to micrometers (µm)
-                voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0)) * 1e6  # Convert meters to µm
-                voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0)) * 1e6  # Convert meters to µm
-                voxel_size_z = float(lsm_meta.get('VoxelSizeZ', 1.0)) * 1e6  # Convert meters to µm
+                # Parse metadata into our strongly-typed structure
+                metadata = LSMMetadata(**tif.lsm_metadata)
+
+                # Extract voxel sizes and convert from meters to micrometers (µm)
+                voxel_size_x = float(metadata.VoxelSizeX) * 1e6
+                voxel_size_y = float(metadata.VoxelSizeY) * 1e6
+                voxel_size_z = float(metadata.VoxelSizeZ) * 1e6
 
                 # Calculate resolution in pixels per micrometer
                 resolution_x = 1.0 / voxel_size_x if voxel_size_x > 0 else 0
                 resolution_y = 1.0 / voxel_size_y if voxel_size_y > 0 else 0
                 resolution = (resolution_x + resolution_y) / 2
 
-                # Parse channel information to detect channel order based on MultiplexOrder
-                tracks = lsm_meta.get('ScanInformation', {}).get('Tracks', [])
-                if not tracks:
-                    return {}
-
-                # Get channel colors from metadata
-                channel_colors = lsm_meta.get('ChannelColors', []).get('Colors', [])
-                if channel_colors:
-                    # Map RGB values to channel indices
+                # Get channel colors and determine channel order
+                channel_order = []
+                if metadata.ChannelColors and metadata.ChannelColors.Colors:
                     color_map = {
                         (0, 255, 0): 1,  # Green -> 1
                         (255, 0, 0): 0,  # Red -> 0
                         (0, 0, 255): 2   # Blue -> 2
                     }
                     
-                    # Create channel order based on colors
-                    channel_order = []
-                    for color in channel_colors:
-                        print(color, color_map)
-                        rgb = tuple(color[:3])  # Take only RGB values, ignore alpha
+                    for color in metadata.ChannelColors.Colors:
+                        rgb = tuple(color[:3])
                         if rgb in color_map:
                             channel_order.append(color_map[rgb])
-                else:
-                    # Fallback to default order if no colors found
-                    channel_order = list(range(len(tracks)))
+                
+                # Fallback to default order if no valid colors found
+                if not channel_order:
+                    channel_order = list(range(metadata.DimensionChannels))
+
+                # Check microscope type from tracks
+                is_lsm510 = 0
+                is_lsm880 = 0
+                if metadata.ScanInformation and metadata.ScanInformation.Tracks:
+                    for track in metadata.ScanInformation.Tracks:
+                        if track.Name.lower().startswith('lsm510'):
+                            is_lsm510 = 1
+                        elif track.Name.lower().startswith('lsm880'):
+                            is_lsm880 = 1
 
                 scaling_params = {
                     'VoxelSizeX': voxel_size_x,
                     'VoxelSizeY': voxel_size_y,
                     'VoxelSizeZ': voxel_size_z,
                     'resolution': resolution,
-                    'lsm510': 1 if any(track.get('Name', '').lower().startswith('lsm510') for track in tracks) else 0,
-                    'lsm880': 1 if any(track.get('Name', '').lower().startswith('lsm880') for track in tracks) else 0,
+                    'lsm510': is_lsm510,
+                    'lsm880': is_lsm880,
                     'channel_order': channel_order,
                     'z-step': voxel_size_z,
-                    'source': source_metadata
+                    'source': metadata
                 }
 
                 return scaling_params
