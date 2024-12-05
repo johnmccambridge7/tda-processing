@@ -433,7 +433,7 @@ class FPSGame(QWidget):
             color = self.bullet_color
             color.setAlpha(int((trail[4] / 5) * 255))
             painter.setPen(QPen(color, 1))
-            painter.drawLine(trail[0], trail[1], trail[2], trail[3])
+            painter.drawLine(int(trail[0]), int(trail[1]), int(trail[2]), int(trail[3]))
         
         # Draw particles
         for particle in self.particles:
