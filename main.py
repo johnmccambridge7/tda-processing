@@ -793,6 +793,10 @@ class MainWindow(QMainWindow):
         if 0 <= channel_idx < len(self.reference_labels):
             self.reference_labels[channel_idx].setPixmap(pixmap)
 
+    def collect_processed_data(self, channel_idx, data):
+        """Collect processed channel data"""
+        self.processed_channels[channel_idx] = data
+
     def update_combo(self):
         current_time = time.time()
         if current_time - self.last_collect_time < 1.5:  # 1.5 seconds window for combo
