@@ -362,7 +362,7 @@ class SubwayGame(QWidget):
         for x, y, _, _, life in self.particles:
             alpha = min(255, life * 5)
             color = QColor(255, 255, 255, alpha)
-            painter.fillRect(x - 1, y - 1, 3, 3, color)
+            painter.fillRect(int(x - 1), int(y - 1), 3, 3, color)
         
         for x, y, _, _, life in self.trail_particles:
             alpha = min(255, life * 8)
@@ -370,7 +370,7 @@ class SubwayGame(QWidget):
                          self.player_color.green(),
                          self.player_color.blue(),
                          alpha)
-            painter.fillRect(x - 1, y - 1, 3, 3, color)
+            painter.fillRect(int(x - 1), int(y - 1), 3, 3, color)
     
     def draw_boost_effect(self, painter, x, y):
         painter.save()
