@@ -295,8 +295,8 @@ class SubwayGame(QWidget):
     def get_obstacle_hitbox(self, obstacle):
         lane_width = self.width() // 3
         return QRect(
-            (obstacle[0] * lane_width) + (lane_width // 4),
-            obstacle[1],
+            int((obstacle[0] * lane_width) + (lane_width // 4)),
+            int(obstacle[1]),
             lane_width // 2,
             20
         )
