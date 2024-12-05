@@ -1007,6 +1007,12 @@ class MainWindow(QMainWindow):
             self.output_dir_line_edit.setText(selected_dir)
             self.populate_output_files()
 
+    def toggle_games_section(self):
+        """Toggle the visibility of the games section"""
+        self.games_expanded = not self.games_expanded
+        self.games_content.setVisible(self.games_expanded)
+        self.toggle_games_btn.setText("▼" if self.games_expanded else "▶")
+
 
 def main():
     app = QApplication(sys.argv)
@@ -1021,12 +1027,6 @@ def main():
     window.show()
     sys.exit(app.exec_())
 
-
-    def toggle_games_section(self):
-        """Toggle the visibility of the games section"""
-        self.games_expanded = not self.games_expanded
-        self.games_content.setVisible(self.games_expanded)
-        self.toggle_games_btn.setText("▼" if self.games_expanded else "▶")
 
 if __name__ == "__main__":
     main()
