@@ -10,6 +10,9 @@ class RacingGame(QWidget):
         self.setFixedSize(200, 200)
         self.setFocusPolicy(Qt.StrongFocus)
         
+        # Track pressed keys
+        self.keys_pressed = set()
+        
         # Game state
         self.player_x = 100  # Center position
         self.player_y = 150  # Starting Y position
@@ -111,10 +114,12 @@ class RacingGame(QWidget):
         if self.game_over:
             return
             
+        self.keys_pressed.add(event.key())
         if event.key() == Qt.Key_Space and self.boost_fuel > 0:
             self.is_boosting = True
     
     def keyReleaseEvent(self, event: QKeyEvent):
+        self.keys_pressed.discard(event.key())
         if event.key() == Qt.Key_Space:
             self.is_boosting = False
     
@@ -123,17 +128,16 @@ class RacingGame(QWidget):
             return
         
         # Handle input
-        keys = self.window().keyboardGrabber().keyboardGrabber()
-        if keys.isKeyPressed(Qt.Key_Left):
+        if Qt.Key_Left in self.keys_pressed:
             self.player_angle -= self.turn_speed
             self.add_skid_mark()
-        if keys.isKeyPressed(Qt.Key_Right):
+        if Qt.Key_Right in self.keys_pressed:
             self.player_angle += self.turn_speed
             self.add_skid_mark()
-        if keys.isKeyPressed(Qt.Key_Up):
-            self.player_speed = min(self.player_speed + self.acceleration, 
+        if Qt.Key_Up in self.keys_pressed:
+            self.player_speed = min(self.player_speed + self.acceleration,
                                   self.max_speed * (1.5 if self.is_boosting else 1))
-        if keys.isKeyPressed(Qt.Key_Down):
+        if Qt.Key_Down in self.keys_pressed:
             self.player_speed = max(self.player_speed - self.acceleration, -self.max_speed/2)
         
         # Update boost
