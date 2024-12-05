@@ -312,14 +312,17 @@ class FlightSim3D(QOpenGLWidget):
         glColor3f(0, 1, 0)  # Green HUD
         
         # Draw text using OpenGL
-        self.renderText(10, 20, f"Altitude: {int(self.position.y())}m")
-        self.renderText(10, 40, f"Speed: {int(self.velocity.length())}m/s")
-        self.renderText(10, 60, f"Score: {self.score}")
+        painter = QPainter(self)
+        painter.setFont(QFont("Arial", 10))
+        painter.setPen(QColor(0, 255, 0))  # Green color for HUD
+        painter.drawText(10, 20, f"Altitude: {int(self.position.y())}m")
+        painter.drawText(10, 40, f"Speed: {int(self.velocity.length())}m/s")
+        painter.drawText(10, 60, f"Score: {self.score}")
         
         if self.game_over:
-            self.renderText(
-                self.width()/2 - 50,
-                self.height()/2,
+            painter.drawText(
+                self.rect(),
+                Qt.AlignCenter,
                 "Game Over! Press R to restart"
             )
             
