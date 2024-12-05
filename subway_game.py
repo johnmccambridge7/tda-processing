@@ -342,19 +342,20 @@ class SubwayGame(QWidget):
         size = self.width() // 12
         painter.setBrush(self.coin_color)
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(x, y, size, size)
+        painter.drawEllipse(int(x), int(y), size, size)
     
     def draw_powerup(self, painter, x, y, p_type):
         size = self.width() // 9
         painter.setBrush(self.powerup_colors[p_type])
         painter.setPen(Qt.NoPen)
-        painter.drawRect(x, y, size, size)
+        painter.drawRect(int(x), int(y), size, size)
     
     def draw_obstacle(self, painter, x, y, o_type):
         painter.fillRect(
-            int(x), int(y),
-            self.width() // 6,
-            20,
+            int(x),
+            int(y),
+            int(self.width() // 6),
+            int(20),
             self.obstacle_colors[o_type]
         )
     
@@ -366,10 +367,12 @@ class SubwayGame(QWidget):
         
         for x, y, _, _, life in self.trail_particles:
             alpha = min(255, life * 8)
-            color = QColor(self.player_color.red(),
-                         self.player_color.green(),
-                         self.player_color.blue(),
-                         alpha)
+            color = QColor(
+                self.player_color.red(),
+                self.player_color.green(),
+                self.player_color.blue(),
+                alpha
+            )
             painter.fillRect(int(x - 1), int(y - 1), 3, 3, color)
     
     def draw_boost_effect(self, painter, x, y):
@@ -377,7 +380,7 @@ class SubwayGame(QWidget):
         painter.setOpacity(0.5)
         for i in range(3):
             offset = i * 5
-            painter.fillRect(x - offset, y, self.width() // 6, 30, self.player_color)
+            painter.fillRect(int(x - offset), int(y), int(self.width() // 6), 30, self.player_color)
         painter.restore()
     
     def draw_hud(self, painter):
@@ -390,7 +393,7 @@ class SubwayGame(QWidget):
         
         # Draw boost meter if active
         if self.boost_mode:
-            painter.fillRect(10, 70, (self.boost_timer / 100) * 50, 5, QColor("#2196F3"))
+            painter.fillRect(10, 70, int((self.boost_timer / 100) * 50), 5, QColor("#2196F3"))
     
     def draw_game_over(self, painter):
         painter.fillRect(0, 0, self.width(), self.height(), QColor(0, 0, 0, 150))
