@@ -37,10 +37,13 @@ def process_channel(channel, channel_idx, progress_callback, preview_callback, r
         matched = match_histograms(image, channel[reference])
         normalized.append(median_filter(matched, size=3))
 
-        # the image is 1024x1024, but put everything into the green channel
-        # Adjust channel_idx if necessary to map to the correct color channel (e.g., 0 for Red, 1 for Green, 2 for Blue)
+        # Create RGB image with the channel in the correct position based on channel_idx
+        # channel_idx mapping: 0->Red, 1->Green, 2->Blue
         color_image = np.zeros((channel[reference].shape[0], channel[reference].shape[1], 3), dtype=np.uint8)
-        color_image[:, :, channel_idx] = normalized[-1]
+        # Map the channel to the correct color position
+        color_map = {1: 0, 0: 1, 2: 2}  # Maps [Green, Red, Blue] order
+        color_position = color_map.get(channel_idx, channel_idx)
+        color_image[:, :, color_position] = normalized[-1]
 
         if preview_callback is not None:
             preview_image = Image.fromarray(color_image).convert("RGB")
