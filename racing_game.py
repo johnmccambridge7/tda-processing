@@ -12,6 +12,7 @@ class RacingGame(QWidget):
         
         # Game state
         self.player_x = 100  # Center position
+        self.player_y = 150  # Starting Y position
         self.player_speed = 0
         self.player_angle = 0  # Facing up (in degrees)
         self.score = 0
