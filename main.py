@@ -306,6 +306,13 @@ class MainWindow(QMainWindow):
         # Header
         header_layout = QHBoxLayout()
 
+        # Title and instructions
+        title_layout = QVBoxLayout()
+        header_layout.addLayout(title_layout)
+        
+        # Add stretch to push arcade button to the right
+        header_layout.addStretch()
+        
         # Arcade button
         self.arcade_btn = QPushButton("Enter Arcade")
         self.arcade_btn.setStyleSheet("""
@@ -320,9 +327,6 @@ class MainWindow(QMainWindow):
         """)
         self.arcade_btn.clicked.connect(self.toggle_arcade)
         header_layout.addWidget(self.arcade_btn)
-
-        # Title and instructions
-        title_layout = QVBoxLayout()
         title_label = QLabel("TDA Processing App")
         title_font = QFont("SF Pro", 24, QFont.Bold)
         title_label.setFont(title_font)
