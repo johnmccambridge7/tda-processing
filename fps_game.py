@@ -452,9 +452,9 @@ class FPSGame(QWidget):
             # Enemy direction indicator
             angle_rad = math.radians(enemy['angle'])
             painter.drawLine(
-                enemy['x'], enemy['y'],
-                enemy['x'] + math.cos(angle_rad) * 15,
-                enemy['y'] + math.sin(angle_rad) * 15
+                int(enemy['x']), int(enemy['y']),
+                int(enemy['x'] + math.cos(angle_rad) * 15),
+                int(enemy['y'] + math.sin(angle_rad) * 15)
             )
         
         # Draw player
