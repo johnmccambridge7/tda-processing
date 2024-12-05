@@ -23,6 +23,7 @@ from constants import (
     WINDOW_TITLE, DEFAULT_OUTPUT_DIR, ACCEPTED_FILE_TYPES,
     COPYRIGHT_TEXT
 )
+from lsm_types import LSMMetadata
 
 
 class WorkerSignals(QObject):
@@ -144,7 +145,7 @@ class ImageSaverWorker(Thread):
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
-                'spacing': self.scaling_params['zstep'] ## need to save this during meta extract!
+                'spacing': self.scaling_params['z-step']
             }
 
             # Prepare output directory
@@ -294,7 +295,8 @@ class MainWindow(QMainWindow):
             'resolution': 1.0,
             'lsm510': 0,
             'lsm880': 0,
-            'channel_order': []
+            'channel_order': [],
+            'z-step': 0,
         }
         self.file_status_items = {}
         self.output_file_status_items = {}
@@ -682,10 +684,10 @@ class MainWindow(QMainWindow):
         try:
             with TiffFile(file_path) as tif:
                 lsm_meta = tif.lsm_metadata
-                print(lsm_meta.get('ChannelColors'))
                 if lsm_meta is None:
                     return {}
 
+                source_metadata: LSMMetadata = LSMMetadata(**lsm_meta)
                 # Extract voxel size and convert from meters to micrometers (µm)
                 voxel_size_x = float(lsm_meta.get('VoxelSizeX', 1.0)) * 1e6  # Convert meters to µm
                 voxel_size_y = float(lsm_meta.get('VoxelSizeY', 1.0)) * 1e6  # Convert meters to µm
@@ -729,7 +731,9 @@ class MainWindow(QMainWindow):
                     'resolution': resolution,
                     'lsm510': 1 if any(track.get('Name', '').lower().startswith('lsm510') for track in tracks) else 0,
                     'lsm880': 1 if any(track.get('Name', '').lower().startswith('lsm880') for track in tracks) else 0,
-                    'channel_order': channel_order
+                    'channel_order': channel_order,
+                    'z-step': voxel_size_z,
+                    'source': source_metadata
                 }
 
                 return scaling_params
