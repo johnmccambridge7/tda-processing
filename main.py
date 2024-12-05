@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 from snake_game import SnakeGame
 from subway_game import SubwayGame
 from racing_game import RacingGame
-from fps_game import FPSGame
+from flight_sim import FlightSim
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -452,13 +452,13 @@ class MainWindow(QMainWindow):
         # FPS game
         fps_container = QWidget()
         fps_layout = QVBoxLayout(fps_container)
-        fps_title = QLabel("FPS (WASD + Mouse + R)")
+        fps_title = QLabel("Flight Sim (WASD/QE + Space/Ctrl + G/F)")
         fps_title.setStyleSheet("color: white;")
         fps_title.setAlignment(Qt.AlignCenter)
         fps_layout.addWidget(fps_title)
         
-        self.fps_game = FPSGame()
-        fps_layout.addWidget(self.fps_game)
+        self.flight_sim = FlightSim()
+        fps_layout.addWidget(self.flight_sim)
         
         games_grid.addWidget(fps_container, 0, 3)
         
