@@ -313,18 +313,22 @@ class MainWindow(QMainWindow):
         # Add stretch to push arcade button to the right
         header_layout.addStretch()
         
-        # Arcade button
-        self.arcade_btn = QPushButton("Enter Arcade")
+        # Hidden arcade button
+        self.arcade_btn = QPushButton("🎮")
         self.arcade_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
-                max-width: 100px;
+                background-color: transparent;
+                border: none;
+                color: #555555;
+                max-width: 30px;
                 padding: 5px;
+                font-size: 16px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                color: #4CAF50;
             }
         """)
+        self.arcade_btn.setToolTip("Secret Arcade Mode")
         self.arcade_btn.clicked.connect(self.toggle_arcade)
         header_layout.addWidget(self.arcade_btn)
         title_label = QLabel("TDA Processing App")
@@ -1001,10 +1005,10 @@ class MainWindow(QMainWindow):
         
         if self.arcade_window.isVisible():
             self.arcade_window.hide()
-            self.arcade_btn.setText("Enter Arcade")
+            self.arcade_btn.setText("🎮")
         else:
             self.arcade_window.show()
-            self.arcade_btn.setText("Exit Arcade")
+            self.arcade_btn.setText("🎮")
 
 
 def main():
