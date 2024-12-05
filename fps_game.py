@@ -503,10 +503,10 @@ class FPSGame(QWidget):
         if not self.game_over:
             painter.setPen(QPen(Qt.white, 1))
             size = 3 + self.recoil
-            painter.drawLine(self.width()/2 - size, self.height()/2,
-                           self.width()/2 + size, self.height()/2)
-            painter.drawLine(self.width()/2, self.height()/2 - size,
-                           self.width()/2, self.height()/2 + size)
+            painter.drawLine(int(self.width()/2 - size), int(self.height()/2),
+                           int(self.width()/2 + size), int(self.height()/2))
+            painter.drawLine(int(self.width()/2), int(self.height()/2 - size),
+                           int(self.width()/2), int(self.height()/2 + size))
         
         if self.game_over:
             painter.fillRect(0, 0, self.width(), self.height(), QColor(0, 0, 0, 150))
