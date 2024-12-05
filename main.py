@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItemIterator
 )
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
 from tifffile import imwrite, imread, TiffFile
 
