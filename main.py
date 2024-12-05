@@ -96,73 +96,59 @@ class ImageSaverWorker(Thread):
         self.current_file = current_file
         self.output_dir = output_dir
         self.signals = signals
+        self.daemon = True  # Make thread daemon so it exits when main program does
 
     def run(self):
         try:
-            # Get channel order from scaling params
-            channel_order = self.scaling_params.get('channel_order', [])
-            if not channel_order:
-                # Fallback to sequential order if no channel order specified
-                channel_order = list(range(len(self.processed_channels)))
+            output_path = self._save_image()
+            if output_path:
+                self.signals.save_finished.emit(output_path)
+        except Exception as e:
+            self.signals.save_error.emit(str(e))
 
-            # Ensure we have enough channels
-            if len(channel_order) < 2:
-                self.signals.save_error.emit("Insufficient channels to create an RGB image.")
-                return
+    def _save_image(self):
+        # Get channel order from scaling params
+        channel_order = self.scaling_params.get('channel_order', [])
+        if not channel_order:
+            channel_order = list(range(len(self.processed_channels)))
 
-            # Validate channel count
-            if len(self.processed_channels) != len(set(channel_order)):
-                self.signals.save_error.emit(
-                    f"Channel count mismatch: Expected {len(set(channel_order))} channels but got {len(self.processed_channels)}.")
-                return
+        if len(channel_order) < 2:
+            raise ValueError("Insufficient channels to create an RGB image.")
 
-            # Create RGB image using the channel order from metadata
-            ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
-            rgb_image = np.stack(
-                [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
-                 for i in range(len(self.processed_channels))], axis=0
-            )
-            rgb_image = rgb_image.transpose((1, 0, 2, 3))  # Convert to ZYX(RGB)
+        if len(self.processed_channels) != len(set(channel_order)):
+            raise ValueError(f"Channel count mismatch: Expected {len(set(channel_order))} channels but got {len(self.processed_channels)}.")
 
-            # Convert to uint8 for saving
-            tiff = rgb_image.astype(np.uint8)
+        # Create RGB image
+        ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
+        rgb_image = np.stack(
+            [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
+             for i in range(len(self.processed_channels))], axis=0
+        )
+        rgb_image = rgb_image.transpose((1, 0, 2, 3))
+        tiff = rgb_image.astype(np.uint8)
 
-            # Correct voxel sizes and resolution
-            resolution_x = float(self.scaling_params.get('resolution', '1.0'))
-            resolution_y = float(self.scaling_params.get('resolution', '1.0'))
+        # Prepare output path
+        os.makedirs(self.output_dir, exist_ok=True)
+        base_name = os.path.splitext(os.path.basename(self.current_file))[0]
+        filename = f"{base_name}_PROCESSED.tiff"
+        output_path = os.path.join(self.output_dir, filename)
 
-            # Prepare metadata
-            image_metadata = {
+        # Save image
+        imwrite(
+            output_path,
+            tiff,
+            resolution=(float(self.scaling_params.get('resolution', '1.0')),
+                       float(self.scaling_params.get('resolution', '1.0'))),
+            imagej=True,
+            metadata={
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
                 'spacing': self.scaling_params['z-step'],
             }
+        )
 
-            # Prepare output directory
-            os.makedirs(self.output_dir, exist_ok=True)
-
-            # Generate output file name and path
-            base_name = os.path.splitext(os.path.basename(self.current_file))[0]
-            filename = f"{base_name}_PROCESSED.tiff"
-            output_path = os.path.join(self.output_dir, filename)
-
-            # Save the image using tifffile with ImageJ metadata
-            imwrite(
-                output_path,
-                tiff,
-                resolution=(resolution_x, resolution_y),
-                imagej=True,
-                metadata=image_metadata
-            )
-
-            # Emit success signal
-            self.signals.save_finished.emit(output_path)
-
-        except Exception as e:
-            # Emit error signal
-            print(e)
-            self.signals.save_error.emit(str(e))
+        return output_path
 
 
 class MainWindow(QMainWindow):
@@ -809,32 +795,47 @@ class MainWindow(QMainWindow):
 
     def save_combined_image(self, output_path):
         """Update UI after save is complete"""
-        # Find the root item for the corresponding output directory
-        output_dir = os.path.dirname(output_path)
-        
-        # Store the output file information
-        if output_dir not in self.output_files:
-            self.output_files[output_dir] = []
-        self.output_files[output_dir].append(output_path)
+        try:
+            output_dir = os.path.dirname(output_path)
+            
+            # Update data structures
+            if output_dir not in self.output_files:
+                self.output_files[output_dir] = []
+            self.output_files[output_dir].append(output_path)
 
-        # Find the root item for this output directory
-        root = None
+            # Find or create root item
+            root = self._get_or_create_output_root(output_dir)
+            
+            # Create file item
+            file_name = os.path.basename(output_path)
+            file_size = os.path.getsize(output_path) / (1024 * 1024)
+            item = QTreeWidgetItem(root, [
+                file_name,
+                f"{file_size:.2f} MB",
+                "Saved"
+            ])
+            
+            # Add status label
+            status_label = QLabel("Saved")
+            status_label.setStyleSheet("color: #45a049;")
+            self.output_file_tree.setItemWidget(item, 2, status_label)
+            self.output_file_status_items[output_path] = (item, None)
+            
+        except Exception as e:
+            print(f"Error updating UI after save: {e}")
+
+    def _get_or_create_output_root(self, output_dir):
+        """Get or create root item for output directory"""
+        dir_name = os.path.basename(output_dir)
         for i in range(self.output_file_tree.topLevelItemCount()):
             item = self.output_file_tree.topLevelItem(i)
-            if item.text(0) == os.path.basename(output_dir):
-                root = item
-                break
-
-        if root:
-            # Add the saved file under the root directory
-            file_name = os.path.basename(output_path)
-            file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
-            formatted_size = f"{file_size:.2f} MB"
-            item = QTreeWidgetItem(root, [file_name, formatted_size, "Saved"])
-            completed_label = QLabel("Saved")
-            completed_label.setStyleSheet("color: #45a049;")
-            self.output_file_tree.setItemWidget(item, 2, completed_label)
-            self.output_file_status_items[output_path] = (item, None)
+            if item.text(0) == dir_name:
+                return item
+                
+        # Create new root if not found
+        root = QTreeWidgetItem(self.output_file_tree, [dir_name])
+        root.setExpanded(True)
+        return root
 
     def handle_input_selection(self):
         selected_items = self.input_file_tree.selectedItems()
@@ -867,14 +868,22 @@ class MainWindow(QMainWindow):
 
     def handle_save_finished(self, output_path):
         """Handle save completion signal from worker thread"""
-        self.save_combined_image(output_path)
-        
-        # Continue processing if there are more files
-        if self.to_process:
-            self.run_processing()
-        else:
-            QMessageBox.information(self, "Processing Complete", "All files have been processed!")
-            self.processing_complete = True
+        try:
+            # Update UI in a lightweight way
+            self.save_combined_image(output_path)
+            
+            # Schedule next file processing if needed
+            if self.to_process:
+                # Use a short timer to allow UI to update
+                QTimer.singleShot(100, lambda: self.run_processing())
+            else:
+                self.processing_complete = True
+                # Show completion message in a non-blocking way
+                QTimer.singleShot(200, lambda: QMessageBox.information(
+                    self, "Processing Complete", "All files have been processed!"))
+                
+        except Exception as e:
+            self.show_error(f"Error handling save completion: {e}")
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
