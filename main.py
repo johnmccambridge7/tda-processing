@@ -407,60 +407,37 @@ class MainWindow(QMainWindow):
         games_title.setAlignment(Qt.AlignCenter)
         games_layout.addWidget(games_title)
         
-        # Games grid layout
+        # Games grid layout (2x2)
         games_grid = QGridLayout()
         
-        # Snake game
-        snake_container = QWidget()
-        snake_layout = QVBoxLayout(snake_container)
-        snake_title = QLabel("Snake (Arrow keys)")
-        snake_title.setStyleSheet("color: white;")
-        snake_title.setAlignment(Qt.AlignCenter)
-        snake_layout.addWidget(snake_title)
+        # Game types with their titles
+        game_types = [
+            (SnakeGame, "Snake (Arrow keys)"),
+            (SubwayGame, "Subway (←→ + Space)"),
+            (RacingGame, "Racing (←→↑↓ + Space)"),
+            (FlightSim3D, "Flight Sim (WASD/QE + Space/Ctrl + G/F)")
+        ]
         
-        self.snake_game = SnakeGame()
-        snake_layout.addWidget(self.snake_game)
-        
-        games_grid.addWidget(snake_container, 0, 0)
-        
-        # Subway game
-        subway_container = QWidget()
-        subway_layout = QVBoxLayout(subway_container)
-        subway_title = QLabel("Subway (←→ + Space)")
-        subway_title.setStyleSheet("color: white;")
-        subway_title.setAlignment(Qt.AlignCenter)
-        subway_layout.addWidget(subway_title)
-        
-        self.subway_game = SubwayGame()
-        subway_layout.addWidget(self.subway_game)
-        
-        games_grid.addWidget(subway_container, 0, 1)
-        
-        # Racing game
-        racing_container = QWidget()
-        racing_layout = QVBoxLayout(racing_container)
-        racing_title = QLabel("Racing (←→↑↓ + Space)")
-        racing_title.setStyleSheet("color: white;")
-        racing_title.setAlignment(Qt.AlignCenter)
-        racing_layout.addWidget(racing_title)
-        
-        self.racing_game = RacingGame()
-        racing_layout.addWidget(self.racing_game)
-        
-        games_grid.addWidget(racing_container, 0, 2)
-        
-        # FPS game
-        fps_container = QWidget()
-        fps_layout = QVBoxLayout(fps_container)
-        fps_title = QLabel("Flight Sim (WASD/QE + Space/Ctrl + G/F)")
-        fps_title.setStyleSheet("color: white;")
-        fps_title.setAlignment(Qt.AlignCenter)
-        fps_layout.addWidget(fps_title)
-        
-        self.flight_sim = FlightSim3D()
-        fps_layout.addWidget(self.flight_sim)
-        
-        games_grid.addWidget(fps_container, 0, 3)
+        # Create one instance of each game in a 2x2 grid
+        for i, (game_class, title) in enumerate(game_types):
+            row = i // 2
+            col = i % 2
+            
+            container = QWidget()
+            layout = QVBoxLayout(container)
+            
+            title_label = QLabel(title)
+            title_label.setStyleSheet("color: white;")
+            title_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(title_label)
+            
+            game_instance = game_class()
+            layout.addWidget(game_instance)
+            
+            # Store game instance as attribute
+            setattr(self, game_class.__name__.lower(), game_instance)
+            
+            games_grid.addWidget(container, row, col)
         
         games_layout.addLayout(games_grid)
         
