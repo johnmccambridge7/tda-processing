@@ -494,7 +494,7 @@ class MainWindow(QMainWindow):
                         file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
                         formatted_size = f"{file_size:.2f} MB"
                         item = QTreeWidgetItem(root_item, [file_name, formatted_size, "Saved"])
-                        self.output_file_tree.setItemWidget(item, 2, QLabel("Saved"))
+                        self.output_file_tree.setItemWidget(item, 2, QLabel(""))
                         self.output_file_status_items[output_path] = (item, None)
 
     def handle_output_selection(self, input_dir):
@@ -812,7 +812,7 @@ class MainWindow(QMainWindow):
             item = QTreeWidgetItem(root, [
                 file_name,
                 f"{file_size:.2f} MB",
-                "Saved"
+                ""
             ])
             
             # Add status label
