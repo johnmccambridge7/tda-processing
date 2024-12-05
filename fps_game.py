@@ -23,8 +23,8 @@ class FPSGame(QWidget):
         # Movement
         self.keys_pressed = set()
         self.move_speed = 3
-        self.turn_speed = 4
-        self.mouse_sensitivity = 0.5
+        self.turn_speed = 3  # Reduced turn speed for smoother rotation
+        self.mouse_sensitivity = 0.3  # Reduced sensitivity
         self.recoil = 0
         
         # Weapon state
@@ -65,11 +65,22 @@ class FPSGame(QWidget):
         # Game loop
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_game)
-        self.timer.start(16)  # 60 FPS
+        self.timer.start(16)  # ~60 FPS
         
         # Capture mouse
         self.setMouseTracking(True)
-        self.cursor_pos = self.rect().center()
+        self.center_point = self.rect().center()
+        self.cursor_pos = self.center_point
+        QTimer.singleShot(0, self.center_cursor)
+        
+    def center_cursor(self):
+        self.center_point = self.rect().center()
+        self.cursor_pos = self.center_point
+        self.setCursor(Qt.BlankCursor)
+        self.center_mouse()
+        
+    def center_mouse(self):
+        QCursor.setPos(self.mapToGlobal(self.center_point))
         
     def spawn_enemies(self, count):
         """Spawn new enemies at random positions"""
@@ -102,9 +113,11 @@ class FPSGame(QWidget):
             x2, y2 = wall[1]
             
             # Vector math to find closest point on line
-            line_vec = (x2-x1, y2-y1)
-            point_vec = (x-x1, y-y1)
+            line_vec = (x2 - x1, y2 - y1)
+            point_vec = (x - x1, y - y1)
             line_len = self.distance(wall[0], wall[1])
+            if line_len == 0:
+                continue
             line_unitvec = (line_vec[0]/line_len, line_vec[1]/line_len)
             
             # Project point onto line
@@ -133,16 +146,16 @@ class FPSGame(QWidget):
             x4 = x3 + ray_dir[0]*max_dist
             y4 = y3 + ray_dir[1]*max_dist
             
-            den = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
+            den = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
             if den == 0:
                 continue
                 
-            t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / den
-            u = -((x1-x2)*(y1-y3) - (y1-y2)*(x1-x3)) / den
+            t = ((x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4)) / den
+            u = -((x1 - x2)*(y1 - y3) - (y1 - y2)*(x1 - x3)) / den
             
             if 0 <= t <= 1 and u >= 0:
-                hit_x = x1 + t*(x2-x1)
-                hit_y = y1 + t*(y2-y1)
+                hit_x = x1 + t*(x2 - x1)
+                hit_y = y1 + t*(y2 - y1)
                 dist = self.distance(ray_start, (hit_x, hit_y))
                 if dist < closest_dist:
                     closest_dist = dist
@@ -156,14 +169,14 @@ class FPSGame(QWidget):
             return
             
         self.ammo -= 1
-        self.shot_cooldown = 5
-        self.muzzle_flash = 3
+        self.shot_cooldown = 10  # Increased cooldown for balance
+        self.muzzle_flash = 5  # Longer flash
         
         # Add recoil
-        self.recoil = min(self.recoil + 2, 10)
+        self.recoil = min(self.recoil + 1, 5)  # Reduced recoil
         
         # Calculate spread based on recoil
-        spread = self.recoil * 2
+        spread = self.recoil
         actual_angle = self.player_angle + random.uniform(-spread, spread)
         
         # Ray cast
@@ -177,13 +190,13 @@ class FPSGame(QWidget):
             self.bullet_trails.append([
                 self.player_x, self.player_y,
                 hit[0], hit[1],
-                5  # Life in frames
+                10  # Life in frames
             ])
             
             # Check enemy hits
             for enemy in self.enemies[:]:
                 if self.distance((enemy['x'], enemy['y']), hit) < 10:
-                    enemy['health'] -= random.randint(20, 35)
+                    enemy['health'] -= random.randint(15, 25)
                     self.add_blood_particles(enemy['x'], enemy['y'])
                     if enemy['health'] <= 0:
                         self.enemies.remove(enemy)
@@ -196,7 +209,7 @@ class FPSGame(QWidget):
         """Start reloading sequence"""
         if not self.is_reloading and self.ammo < 30:
             self.is_reloading = True
-            self.reload_timer = 60  # 1 second
+            self.reload_timer = 120  # 2 seconds
     
     def add_blood_particles(self, x, y):
         """Add blood particle effects"""
@@ -218,18 +231,19 @@ class FPSGame(QWidget):
             
         # Update player movement
         dx = dy = 0
+        angle_rad = math.radians(self.player_angle)
         if Qt.Key_W in self.keys_pressed:
-            dx += math.cos(math.radians(self.player_angle)) * self.move_speed
-            dy += math.sin(math.radians(self.player_angle)) * self.move_speed
+            dx += math.cos(angle_rad) * self.move_speed
+            dy += math.sin(angle_rad) * self.move_speed
         if Qt.Key_S in self.keys_pressed:
-            dx -= math.cos(math.radians(self.player_angle)) * self.move_speed
-            dy -= math.sin(math.radians(self.player_angle)) * self.move_speed
+            dx -= math.cos(angle_rad) * self.move_speed
+            dy -= math.sin(angle_rad) * self.move_speed
         if Qt.Key_A in self.keys_pressed:
-            dx += math.cos(math.radians(self.player_angle - 90)) * self.move_speed
-            dy += math.sin(math.radians(self.player_angle - 90)) * self.move_speed
+            dx += math.cos(angle_rad - math.pi/2) * self.move_speed
+            dy += math.sin(angle_rad - math.pi/2) * self.move_speed
         if Qt.Key_D in self.keys_pressed:
-            dx += math.cos(math.radians(self.player_angle + 90)) * self.move_speed
-            dy += math.sin(math.radians(self.player_angle + 90)) * self.move_speed
+            dx += math.cos(angle_rad + math.pi/2) * self.move_speed
+            dy += math.sin(angle_rad + math.pi/2) * self.move_speed
         
         # Test new position for collisions
         new_x = self.player_x + dx
@@ -255,7 +269,7 @@ class FPSGame(QWidget):
         if self.muzzle_flash > 0:
             self.muzzle_flash -= 1
         if self.recoil > 0:
-            self.recoil *= 0.9
+            self.recoil *= 0.95  # Smoother recoil recovery
         
         # Update enemies
         self.update_enemies()
@@ -268,6 +282,7 @@ class FPSGame(QWidget):
             self.game_over = True
         
         self.update()
+        self.center_mouse()
     
     def update_enemies(self):
         """Update enemy AI and movement"""
@@ -307,7 +322,7 @@ class FPSGame(QWidget):
                         )
                         if player_dist < 10:
                             self.player_health -= random.randint(5, 10)
-                            enemy['last_shot'] = 30  # Half second cooldown
+                            enemy['last_shot'] = 60  # 1 second cooldown
             
             elif enemy['state'] == 'chase':
                 # Move toward player
@@ -337,8 +352,8 @@ class FPSGame(QWidget):
                 dist = math.sqrt(dx*dx + dy*dy)
                 
                 if dist > 5:
-                    enemy['x'] += (dx/dist)
-                    enemy['y'] += (dy/dist)
+                    enemy['x'] += (dx/dist) * 0.5
+                    enemy['y'] += (dy/dist) * 0.5
             
             # Update cooldowns
             if enemy['last_shot'] > 0:
@@ -362,7 +377,7 @@ class FPSGame(QWidget):
         
         # Update blood splats
         for splat in self.blood_splats[:]:
-            splat[3] -= 0.5  # Fade out
+            splat[3] -= 1  # Fade out
             if splat[3] <= 0:
                 self.blood_splats.remove(splat)
     
@@ -395,14 +410,14 @@ class FPSGame(QWidget):
             return
             
         # Calculate mouse movement from center
-        center = self.rect().center()
-        dx = event.pos().x() - center.x()
+        dx = event.pos().x() - self.center_point.x()
+        dy = event.pos().y() - self.center_point.y()
         
         # Update player angle
         self.player_angle += dx * self.mouse_sensitivity
-        
-        # Keep angle in [0, 360)
         self.player_angle %= 360
+        
+        self.center_mouse()
     
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -431,7 +446,7 @@ class FPSGame(QWidget):
         # Draw bullet trails
         for trail in self.bullet_trails:
             color = self.bullet_color
-            color.setAlpha(int((trail[4] / 5) * 255))
+            color.setAlpha(int((trail[4] / 10) * 255))
             painter.setPen(QPen(color, 1))
             painter.drawLine(int(trail[0]), int(trail[1]), int(trail[2]), int(trail[3]))
         
@@ -439,7 +454,7 @@ class FPSGame(QWidget):
         for particle in self.particles:
             color = particle[5]
             color.setAlpha(int((particle[4] / 30) * 255))
-            painter.setPen(QPen(color, 3))
+            painter.setPen(QPen(color, 2))
             painter.drawPoint(int(particle[0]), int(particle[1]))
         
         # Draw enemies
@@ -503,13 +518,16 @@ class FPSGame(QWidget):
         if not self.game_over:
             painter.setPen(QPen(Qt.white, 1))
             size = 3 + self.recoil
-            painter.drawLine(int(self.width()/2 - size), int(self.height()/2),
-                           int(self.width()/2 + size), int(self.height()/2))
-            painter.drawLine(int(self.width()/2), int(self.height()/2 - size),
-                           int(self.width()/2), int(self.height()/2 + size))
+            center = self.rect().center()
+            painter.drawLine(int(center.x() - size), int(center.y()),
+                           int(center.x() + size), int(center.y()))
+            painter.drawLine(int(center.x()), int(center.y() - size),
+                           int(center.x()), int(center.y() + size))
         
         if self.game_over:
-            painter.fillRect(0, 0, self.width(), self.height(), QColor(0, 0, 0, 150))
+            painter.setBrush(QColor(0, 0, 0, 150))
+            painter.setPen(Qt.NoPen)
+            painter.drawRect(0, 0, self.width(), self.height())
             painter.setPen(Qt.white)
             painter.setFont(QFont("Arial", 12, QFont.Bold))
             painter.drawText(
