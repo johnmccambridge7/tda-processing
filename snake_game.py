@@ -6,7 +6,7 @@ import random
 class SnakeGame(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(300, 300)
+        self.setFixedSize(200, 200)
         self.setFocusPolicy(Qt.StrongFocus)
         
         # Game state
