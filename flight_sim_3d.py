@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QVector3D, QMatrix4x4, QQuaternion
+from PyQt5.QtGui import QVector3D, QMatrix4x4, QQuaternion, QPainter, QColor, QFont
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import math
