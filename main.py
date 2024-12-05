@@ -782,6 +782,7 @@ class MainWindow(QMainWindow):
         self.processed_channels[channel_idx] = data
 
     def worker_finished(self):
+        """Handle completion of a channel processing worker"""
         self.workers_finished += 1
         if self.workers_finished == self.expected_total:
             # Determine the input directory for the current file
@@ -805,16 +806,35 @@ class MainWindow(QMainWindow):
             )
             saver_worker.start()
             self.completed_files += 1
-            if self.to_process:
-                self.run_processing()
-            else:
-                QMessageBox.information(self, "Processing Complete", "All files have been processed!")
-                # Mark processing as complete
-                self.processing_complete = True
 
-    def save_combined_image(self):
-        # This method is no longer called directly from worker_finished
-        pass
+    def save_combined_image(self, output_path):
+        """Update UI after save is complete"""
+        # Find the root item for the corresponding output directory
+        output_dir = os.path.dirname(output_path)
+        
+        # Store the output file information
+        if output_dir not in self.output_files:
+            self.output_files[output_dir] = []
+        self.output_files[output_dir].append(output_path)
+
+        # Find the root item for this output directory
+        root = None
+        for i in range(self.output_file_tree.topLevelItemCount()):
+            item = self.output_file_tree.topLevelItem(i)
+            if item.text(0) == os.path.basename(output_dir):
+                root = item
+                break
+
+        if root:
+            # Add the saved file under the root directory
+            file_name = os.path.basename(output_path)
+            file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
+            formatted_size = f"{file_size:.2f} MB"
+            item = QTreeWidgetItem(root, [file_name, formatted_size, "Saved"])
+            completed_label = QLabel("Saved")
+            completed_label.setStyleSheet("color: #45a049;")
+            self.output_file_tree.setItemWidget(item, 2, completed_label)
+            self.output_file_status_items[output_path] = (item, None)
 
     def handle_input_selection(self):
         selected_items = self.input_file_tree.selectedItems()
@@ -846,36 +866,15 @@ class MainWindow(QMainWindow):
             iterator += 1
 
     def handle_save_finished(self, output_path):
-        # Find the root item for the corresponding output directory
-        output_dir = self.output_dir
-        for input_dir, out_dir in self.output_directories.items():
-            if out_dir == os.path.dirname(output_path):
-                output_dir = out_dir
-                break
-
-        # Store the output file information
-        if output_dir not in self.output_files:
-            self.output_files[output_dir] = []
-        self.output_files[output_dir].append(output_path)
-
-        # Find the root item for this output directory
-        root = None
-        for i in range(self.output_file_tree.topLevelItemCount()):
-            item = self.output_file_tree.topLevelItem(i)
-            if item.text(0) == os.path.basename(output_dir):
-                root = item
-                break
-
-        if root:
-            # Add the saved file under the root directory
-            file_name = os.path.basename(output_path)
-            file_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
-            formatted_size = f"{file_size:.2f} MB"
-            item = QTreeWidgetItem(root, [file_name, formatted_size, "Saved"])
-            completed_label = QLabel("Saved")
-            completed_label.setStyleSheet("color: #45a049;")
-            self.output_file_tree.setItemWidget(item, 2, completed_label)
-            self.output_file_status_items[output_path] = (item, None)
+        """Handle save completion signal from worker thread"""
+        self.save_combined_image(output_path)
+        
+        # Continue processing if there are more files
+        if self.to_process:
+            self.run_processing()
+        else:
+            QMessageBox.information(self, "Processing Complete", "All files have been processed!")
+            self.processing_complete = True
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
