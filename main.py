@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 )
 from snake_game import SnakeGame
 from subway_game import SubwayGame
+from racing_game import RacingGame
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -433,6 +434,19 @@ class MainWindow(QMainWindow):
         subway_layout.addWidget(self.subway_game)
         
         games_grid.addWidget(subway_container, 0, 1)
+        
+        # Racing game
+        racing_container = QWidget()
+        racing_layout = QVBoxLayout(racing_container)
+        racing_title = QLabel("Racing (←→↑↓ + Space)")
+        racing_title.setStyleSheet("color: white;")
+        racing_title.setAlignment(Qt.AlignCenter)
+        racing_layout.addWidget(racing_title)
+        
+        self.racing_game = RacingGame()
+        racing_layout.addWidget(self.racing_game)
+        
+        games_grid.addWidget(racing_container, 0, 2)
         
         games_layout.addLayout(games_grid)
         
