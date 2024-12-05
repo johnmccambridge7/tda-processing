@@ -201,8 +201,8 @@ class SubwayGame(QWidget):
                 self.coins_list.remove(coin)
             else:
                 coin_rect = QRect(
-                    (coin[0] * lane_width) + (lane_width // 4),
-                    coin[1],
+                    int((coin[0] * lane_width) + (lane_width // 4)),
+                    int(coin[1]),
                     lane_width // 4,
                     lane_width // 4
                 )
