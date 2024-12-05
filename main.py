@@ -141,7 +141,6 @@ class ImageSaverWorker(Thread):
                 'mode': 'color',
                 'unit': 'um',
                 'spacing': self.scaling_params['z-step'],
-                
             }
 
             # Prepare output directory
@@ -158,23 +157,7 @@ class ImageSaverWorker(Thread):
                 tiff,
                 resolution=(resolution_x, resolution_y),
                 imagej=True,
-                metadata={
-                    **image_metadata,
-                    'ImageJ': {
-                        'Channels': 3,
-                        'Images': tiff.shape[0],  # Number of Z slices
-                        'Slices': tiff.shape[0],  # Same as Images for Z-stack
-                        'Frames': 1,
-                        'hyperstack': True,
-                        'mode': 'composite',
-                        'loop': False,
-                        'LUTs': [
-                            [0, 255, 0],  # Green
-                            [255, 0, 0],  # Red 
-                            [0, 0, 255]   # Blue
-                        ]
-                    }
-                }
+                metadata=image_metadata
             )
 
             # Emit success signal
