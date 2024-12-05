@@ -352,7 +352,7 @@ class SubwayGame(QWidget):
     
     def draw_obstacle(self, painter, x, y, o_type):
         painter.fillRect(
-            x, y,
+            int(x), int(y),
             self.width() // 6,
             20,
             self.obstacle_colors[o_type]
