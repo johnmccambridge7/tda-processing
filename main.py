@@ -821,8 +821,15 @@ class MainWindow(QMainWindow):
         if 0 <= channel_idx < len(self.reference_labels):
             self.reference_labels[channel_idx].setPixmap(pixmap)
 
-    def collect_processed_data(self, channel_idx, data):
-        self.processed_channels[channel_idx] = data
+    def update_combo(self):
+        current_time = time.time()
+        if current_time - self.last_collect_time < 1.5:  # 1.5 seconds window for combo
+            self.combo_multiplier = min(self.combo_multiplier + 1, 10)  # Max 10x multiplier
+            self.combo_timer = 100  # Reset combo timer
+        else:
+            self.combo_multiplier = 1
+        self.last_collect_time = current_time
+        self.max_combo = max(self.max_combo, self.combo_multiplier)
 
     def worker_finished(self):
         """Handle completion of a channel processing worker"""

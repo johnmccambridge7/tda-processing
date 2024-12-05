@@ -24,6 +24,10 @@ class SubwayGame(QWidget):
         self.distance = 0
         self.boost_mode = False
         self.boost_timer = 0
+        self.combo_multiplier = 1
+        self.combo_timer = 0
+        self.last_collect_time = 0
+        self.max_combo = 1
         
         # Player movement
         self.lane_change_speed = 5
@@ -43,18 +47,32 @@ class SubwayGame(QWidget):
         
         # Colors and styling
         self.player_color = QColor("#4CAF50")
+        self.player_outline = QColor("#2E7D32")
         self.obstacle_colors = {
             'regular': QColor("#F44336"),
             'special': QColor("#FF9800"),
             'barrier': QColor("#9C27B0")
         }
+        self.obstacle_outlines = {
+            'regular': QColor("#B71C1C"),
+            'special': QColor("#E65100"),
+            'barrier': QColor("#4A148C")
+        }
         self.coin_color = QColor("#FFD700")
+        self.coin_outline = QColor("#FFA000")
         self.powerup_colors = {
             'boost': QColor("#2196F3"),
             'magnet': QColor("#E91E63"),
             'shield': QColor("#00BCD4")
         }
-        self.background_color = QColor("#2E2E2E")
+        self.powerup_outlines = {
+            'boost': QColor("#1565C0"),
+            'magnet': QColor("#C2185B"),
+            'shield': QColor("#0097A7")
+        }
+        self.background_color = QColor("#1A237E")
+        self.lane_color = QColor("#3F51B5")
+        self.score_color = QColor("#FFFFFF")
         
         # Setup timers
         self.timer = QTimer(self)
@@ -153,6 +171,12 @@ class SubwayGame(QWidget):
             if self.boost_timer <= 0:
                 self.boost_mode = False
                 self.obstacle_speed = self.base_obstacle_speed
+        
+        # Update combo timer
+        if self.combo_multiplier > 1:
+            self.combo_timer -= 1
+            if self.combo_timer <= 0:
+                self.combo_multiplier = 1
         
         # Increase difficulty over time
         self.distance += self.obstacle_speed
@@ -384,16 +408,34 @@ class SubwayGame(QWidget):
         painter.restore()
     
     def draw_hud(self, painter):
-        # Draw score and coins
-        painter.setPen(Qt.white)
+        # Draw score and coins with shadow effect
         painter.setFont(QFont("Arial", 10, QFont.Bold))
+        
+        # Draw shadows
+        painter.setPen(QColor(0, 0, 0, 100))
+        painter.drawText(11, 21, f"Score: {self.score}")
+        painter.drawText(11, 41, f"Coins: {self.coins}")
+        painter.drawText(11, 61, f"Level: {self.level}")
+        
+        # Draw text
+        painter.setPen(self.score_color)
         painter.drawText(10, 20, f"Score: {self.score}")
         painter.drawText(10, 40, f"Coins: {self.coins}")
         painter.drawText(10, 60, f"Level: {self.level}")
         
+        # Draw combo multiplier if active
+        if self.combo_multiplier > 1:
+            painter.setPen(QColor("#FFA000"))
+            painter.drawText(10, 80, f"Combo: x{self.combo_multiplier}")
+            # Draw combo timer bar
+            painter.fillRect(10, 85, int((self.combo_timer / 100) * 50), 3, QColor("#FFA000"))
+        
         # Draw boost meter if active
         if self.boost_mode:
-            painter.fillRect(10, 70, int((self.boost_timer / 100) * 50), 5, QColor("#2196F3"))
+            gradient = QLinearGradient(10, 70, 60, 75)
+            gradient.setColorAt(0, QColor("#2196F3"))
+            gradient.setColorAt(1, QColor("#64B5F6"))
+            painter.fillRect(10, 70, int((self.boost_timer / 100) * 50), 5, gradient)
     
     def draw_game_over(self, painter):
         painter.fillRect(0, 0, self.width(), self.height(), QColor(0, 0, 0, 150))
