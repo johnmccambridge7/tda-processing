@@ -129,10 +129,10 @@ class RacingGame(QWidget):
         
         # Handle input
         if Qt.Key_Left in self.keys_pressed:
-            self.player_angle -= self.turn_speed
+            self.player_angle += self.turn_speed
             self.add_skid_mark()
         if Qt.Key_Right in self.keys_pressed:
-            self.player_angle += self.turn_speed
+            self.player_angle -= self.turn_speed
             self.add_skid_mark()
         if Qt.Key_Up in self.keys_pressed:
             self.player_speed = min(self.player_speed + self.acceleration,
