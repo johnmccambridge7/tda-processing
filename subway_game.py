@@ -325,14 +325,14 @@ class SubwayGame(QWidget):
         if self.is_rolling:
             # Draw rolling animation
             painter.save()
-            painter.translate(x + self.width() // 12, y + 22)
+            painter.translate(int(x + self.width() // 12), int(y + 22))
             painter.rotate(self.roll_animation)
-            painter.translate(-(x + self.width() // 12), -(y + 22))
-            painter.fillRect(x, y + 15, self.width() // 6, 15, self.player_color)
+            painter.translate(int(-(x + self.width() // 12)), int(-(y + 22)))
+            painter.fillRect(int(x), int(y + 15), self.width() // 6, 15, self.player_color)
             painter.restore()
         else:
             # Draw normal player
-            painter.fillRect(x, y, self.width() // 6, 30, self.player_color)
+            painter.fillRect(int(x), int(y), self.width() // 6, 30, self.player_color)
         
         # Draw boost effect
         if self.boost_mode:
