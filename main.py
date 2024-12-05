@@ -124,7 +124,7 @@ class ImageSaverWorker(Thread):
             ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
             rgb_image = np.stack(
                 [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
-                 for i in range(3)], axis=0
+                 for i in range(len(self.processed_channels))], axis=0
             )
             rgb_image = rgb_image.transpose((1, 0, 2, 3))  # Convert to ZYX(RGB)
 
@@ -132,20 +132,16 @@ class ImageSaverWorker(Thread):
             tiff = rgb_image.astype(np.uint8)
 
             # Correct voxel sizes and resolution
-            voxel_size_x = float(self.scaling_params.get('VoxelSizeX', 1.0))
-            voxel_size_y = float(self.scaling_params.get('VoxelSizeY', 1.0))
-            voxel_size_z = float(self.scaling_params.get('VoxelSizeZ', 1.0))
             resolution_x = float(self.scaling_params.get('resolution', '1.0'))
             resolution_y = float(self.scaling_params.get('resolution', '1.0'))
-
-            # Metadata for saving the image
 
             # Prepare metadata
             image_metadata = {
                 'axes': 'ZCYX',
                 'mode': 'color',
                 'unit': 'um',
-                'spacing': self.scaling_params['z-step']
+                'spacing': self.scaling_params['z-step'],
+                
             }
 
             # Prepare output directory
@@ -162,7 +158,7 @@ class ImageSaverWorker(Thread):
                 tiff,
                 resolution=(resolution_x, resolution_y),
                 imagej=True,
-                metadata=image_metadata
+                metadata=image_metadata,
             )
 
             # Emit success signal
@@ -297,6 +293,7 @@ class MainWindow(QMainWindow):
             'lsm880': 0,
             'channel_order': [],
             'z-step': 0,
+            'source': {},
         }
         self.file_status_items = {}
         self.output_file_status_items = {}
@@ -919,13 +916,6 @@ def main():
     font_families1 = QFontDatabase.applicationFontFamilies(font_id1)
     if font_families1:
         app.setFont(QFont(font_families1[0]))
-
-    font_id2 = QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), 'fonts', 'SF-Pro-Regular.otf'))
-    font_families2 = QFontDatabase.applicationFontFamilies(font_id2)
-    if font_families2:
-        regular_font = QFont(font_families2[0])
-    else:
-        regular_font = QFont("SF Pro")
 
     window = MainWindow()
     window.show()
