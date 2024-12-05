@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(WINDOW_TITLE)
+        self.games_expanded = False
         # Get screen dimensions and set window to full size
         screen = QApplication.primaryScreen().size()
         self.resize(screen.width(), screen.height())
@@ -390,7 +391,7 @@ class MainWindow(QMainWindow):
 
         previews_overview_layout.addLayout(grid_layout)
 
-        # Games container
+        # Games container with toggle
         games_container = QFrame()
         games_container.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         games_container.setStyleSheet("""
@@ -402,10 +403,34 @@ class MainWindow(QMainWindow):
         """)
         games_layout = QVBoxLayout(games_container)
         
-        games_title = QLabel("Mini-Games")
+        # Header with toggle button
+        games_header = QHBoxLayout()
+        games_title = QLabel("Arcade Section")
         games_title.setStyleSheet("color: white; font-weight: bold;")
-        games_title.setAlignment(Qt.AlignCenter)
-        games_layout.addWidget(games_title)
+        
+        self.toggle_games_btn = QPushButton("▼")
+        self.toggle_games_btn.setFixedSize(20, 20)
+        self.toggle_games_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: white;
+                border: none;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255,255,255,0.1);
+            }
+        """)
+        self.toggle_games_btn.clicked.connect(self.toggle_games_section)
+        
+        games_header.addWidget(games_title)
+        games_header.addWidget(self.toggle_games_btn)
+        games_header.addStretch()
+        games_layout.addLayout(games_header)
+        
+        # Games content container
+        self.games_content = QWidget()
+        games_content_layout = QVBoxLayout(self.games_content)
         
         # Games grid layout (2x2)
         games_grid = QGridLayout()
@@ -439,12 +464,15 @@ class MainWindow(QMainWindow):
             
             games_grid.addWidget(container, row, col)
         
-        games_layout.addLayout(games_grid)
+        games_content_layout.addLayout(games_grid)
         
         game_instructions = QLabel("Play while processing!\nR to restart either game")
         game_instructions.setStyleSheet("color: white;")
         game_instructions.setAlignment(Qt.AlignCenter)
-        games_layout.addWidget(game_instructions)
+        games_content_layout.addWidget(game_instructions)
+        
+        games_layout.addWidget(self.games_content)
+        self.games_content.hide()  # Start with games hidden
         
         previews_overview_layout.addWidget(games_container)
 
@@ -993,6 +1021,12 @@ def main():
     window.show()
     sys.exit(app.exec_())
 
+
+    def toggle_games_section(self):
+        """Toggle the visibility of the games section"""
+        self.games_expanded = not self.games_expanded
+        self.games_content.setVisible(self.games_expanded)
+        self.toggle_games_btn.setText("▼" if self.games_expanded else "▶")
 
 if __name__ == "__main__":
     main()
