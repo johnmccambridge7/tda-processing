@@ -23,7 +23,7 @@ def create_iconset():
     ]
 
     # Open and resize the base image for each size
-    base_image = Image.open('app_icon_1024.png')
+    base_image = Image.open('icon.png')
     for size, name in icon_sizes:
         resized = base_image.resize((size, size), Image.Resampling.LANCZOS)
         resized.save(f'AppIcon.iconset/icon_{name}')
