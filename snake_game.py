@@ -39,30 +39,43 @@ class SnakeGame(QWidget):
         # Draw background
         painter.fillRect(0, 0, self.width(), self.height(), self.background_color)
         
+        # Calculate cell size based on widget size
+        cell_width = self.width() / self.grid_size
+        cell_height = self.height() / self.grid_size
+        
         # Draw grid
-        for x in range(0, self.width(), self.cell_size):
-            for y in range(0, self.height(), self.cell_size):
-                painter.setPen(self.grid_color)
-                painter.drawRect(x, y, self.cell_size, self.cell_size)
+        painter.setPen(self.grid_color)
+        for i in range(self.grid_size + 1):
+            # Draw vertical lines
+            x = i * cell_width
+            painter.drawLine(int(x), 0, int(x), self.height())
+            
+            # Draw horizontal lines
+            y = i * cell_height
+            painter.drawLine(0, int(y), self.width(), int(y))
+        
+        # Calculate cell size based on widget size and grid size
+        cell_width = self.width() / self.grid_size
+        cell_height = self.height() / self.grid_size
         
         # Draw snake
         painter.setBrush(self.snake_color)
         for segment in self.snake:
             painter.fillRect(
-                segment.x() * self.cell_size,
-                segment.y() * self.cell_size,
-                self.cell_size - 1,
-                self.cell_size - 1,
+                segment.x() * cell_width,
+                segment.y() * cell_height,
+                cell_width,
+                cell_height,
                 self.snake_color
             )
         
         # Draw food
         painter.setBrush(self.food_color)
         painter.fillRect(
-            self.food.x() * self.cell_size,
-            self.food.y() * self.cell_size,
-            self.cell_size - 1,
-            self.cell_size - 1,
+            self.food.x() * cell_width,
+            self.food.y() * cell_height,
+            cell_width,
+            cell_height,
             self.food_color
         )
         
