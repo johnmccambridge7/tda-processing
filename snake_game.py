@@ -18,8 +18,8 @@ class SnakeGame(QWidget):
         self.game_over = False
         
         # Game settings
-        self.cell_size = 15
-        self.grid_size = 20
+        self.cell_size = 10  # Smaller cells to fit 50x50 grid
+        self.grid_size = 50
         self.game_speed = 100  # milliseconds
         
         # Setup game timer
