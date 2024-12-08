@@ -56,6 +56,31 @@ tda-processing-app
 python -m tda_processing_app.main
 ```
 
+### macOS App Bundle
+You can download the pre-built DMG file from the [releases page](https://github.com/yourusername/tda-processing-app/releases) or build it yourself:
+
+```bash
+# Install development requirements
+pip install -r requirements.txt
+
+# Build the app bundle
+python setup_mac.py py2app
+
+# The .app will be in the dist/ directory
+# To create a DMG, use create-dmg:
+create-dmg \
+  --volname "TDA Processing App" \
+  --volicon "app_icon.icns" \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon "TDA Processing App.app" 175 120 \
+  --hide-extension "TDA Processing App.app" \
+  --app-drop-link 425 120 \
+  "TDA Processing App.dmg" \
+  "dist/TDA Processing App.app"
+```
+
 ### Processing Workflow
 
 1. Load images:

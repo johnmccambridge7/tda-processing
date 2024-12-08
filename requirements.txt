@@ -26,3 +26,4 @@ tkinterdnd2==0.4.2
 setuptools~=68.2.0
 pydantic~=2.10.3
 PyOpenGL==3.1.7
+py2app==0.28.7
