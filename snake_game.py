@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout
+from PyQt5.QtWidgets import QWidget, QGridLayout, QSizePolicy
 from PyQt5.QtCore import Qt, QTimer, QPoint
 from PyQt5.QtGui import QPainter, QColor, QKeyEvent
 import random
@@ -7,7 +7,7 @@ class SnakeGame(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(200, 200)
-        self.setSizePolicy(QWidget.Expanding, QWidget.Expanding)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setFocusPolicy(Qt.StrongFocus)
         
         # Game state
