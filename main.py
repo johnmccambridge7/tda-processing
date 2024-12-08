@@ -13,9 +13,6 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItemIterator
 )
 from snake_game import SnakeGame
-from subway_game import SubwayGame
-from racing_game import RacingGame
-from flight_sim_3d import FlightSim3D
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
@@ -961,34 +958,19 @@ class MainWindow(QMainWindow):
         # Games grid layout (2x2)
         games_grid = QGridLayout()
         
-        # Game types with their titles
-        game_types = [
-            (SnakeGame, "Snake (Arrow keys)"),
-            (SubwayGame, "Subway (←→ + Space)"),
-            (RacingGame, "Racing (←→↑↓ + Space)"),
-            (FlightSim3D, "Flight Sim (WASD/QE + Space/Ctrl + G/F)")
-        ]
+        # Create single snake game instance
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
         
-        # Create one instance of each game in a 2x2 grid
-        for i, (game_class, title) in enumerate(game_types):
-            row = i // 2
-            col = i % 2
-            
-            container = QWidget()
-            container_layout = QVBoxLayout(container)
-            
-            title_label = QLabel(title)
-            title_label.setStyleSheet("color: white;")
-            title_label.setAlignment(Qt.AlignCenter)
-            container_layout.addWidget(title_label)
-            
-            game_instance = game_class()
-            container_layout.addWidget(game_instance)
-            
-            # Store game instance as attribute
-            setattr(self, game_class.__name__.lower(), game_instance)
-            
-            games_grid.addWidget(container, row, col)
+        title_label = QLabel("Snake (Arrow keys)")
+        title_label.setStyleSheet("color: white;")
+        title_label.setAlignment(Qt.AlignCenter)
+        container_layout.addWidget(title_label)
+        
+        self.snakegame = SnakeGame()
+        container_layout.addWidget(self.snakegame)
+        
+        games_grid.addWidget(container, 0, 0)
         
         layout.addLayout(games_grid)
         
