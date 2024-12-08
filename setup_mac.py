@@ -10,7 +10,7 @@ DATA_FILES = [
 ]
 OPTIONS = {
     'argv_emulation': True,
-    'packages': ['PyQt5', 'numpy', 'scipy', 'matplotlib', 'scikit-image', 'networkx'],
+    'packages': ['PyQt5', 'numpy', 'scipy', 'matplotlib', 'skimage', 'networkx', 'PIL', 'tifffile'],
     'iconfile': 'app_icon.icns',  # You'll need to create this
     'plist': {
         'CFBundleName': 'TDA Processing App',
