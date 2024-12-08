@@ -9,9 +9,11 @@ DATA_FILES = [
     ('fonts', ['fonts/SF-Pro-Regular.otf', 'fonts/SF-Pro.ttf']),
 ]
 OPTIONS = {
-    'argv_emulation': True,
+    'argv_emulation': False,
     'packages': ['PyQt5', 'numpy', 'scipy', 'matplotlib', 'skimage', 'networkx', 'PIL', 'tifffile'],
-    'iconfile': 'app_icon.icns',  # You'll need to create this
+    'iconfile': 'app_icon.icns',
+    'arch': 'arm64',
+    'qt_plugins': ['platforms'],
     'plist': {
         'CFBundleName': 'TDA Processing App',
         'CFBundleDisplayName': 'TDA Processing App',
