@@ -3,13 +3,14 @@ from setuptools import setup, find_packages
 setup(
     name='tda-processing-app',
     version='1.0.0',
-    description='A PyQt5 Application for TDA Processing',
-    author='Your Name',
-    author_email='your.email@example.com',
+    description='A PyQt5 Application for TDA Processing with Arcade Games',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    author='John McCambridge',
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        'fonts': ['SF-Pro-Regular.otf', 'SF-Pro.ttf'],
+        '': ['fonts/*.otf', 'fonts/*.ttf'],
     },
     install_requires=[
         'contourpy==1.2.1',

@@ -1,2 +1,5 @@
 include fonts/*.ttf
 include fonts/*.otf
+include README.md
+include requirements.txt
+recursive-include * *.py
