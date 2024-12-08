@@ -40,7 +40,7 @@ setup(
     ],
     entry_points={
         'gui_scripts': [
-            'tda-processing-app=main:main',
+            'tda-processing-app=tda_processing_app.main:main',
         ],
     },
     classifiers=[
