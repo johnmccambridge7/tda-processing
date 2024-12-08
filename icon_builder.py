@@ -30,6 +30,10 @@ def create_iconset():
 
     # Convert iconset to icns using iconutil
     subprocess.run(['iconutil', '-c', 'icns', 'AppIcon.iconset'])
+    
+    # Rename the output file to match what setup_mac.py expects
+    if os.path.exists('AppIcon.icns'):
+        os.rename('AppIcon.icns', 'app_icon.icns')
 
 if __name__ == '__main__':
     create_iconset()
