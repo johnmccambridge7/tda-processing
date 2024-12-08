@@ -7,6 +7,7 @@ class SnakeGame(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(200, 200)
+        self.setSizePolicy(QWidget.Expanding, QWidget.Expanding)
         self.setFocusPolicy(Qt.StrongFocus)
         
         # Game state
@@ -135,3 +136,8 @@ class SnakeGame(QWidget):
         self.spawn_food()
         self.timer.start()
         self.update()
+        
+    def resizeEvent(self, event):
+        # Make height match width to maintain square aspect ratio
+        self.setFixedHeight(self.width())
+        super().resizeEvent(event)
