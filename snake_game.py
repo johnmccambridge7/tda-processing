@@ -62,20 +62,20 @@ class SnakeGame(QWidget):
         painter.setBrush(self.snake_color)
         for segment in self.snake:
             painter.fillRect(
-                segment.x() * cell_width,
-                segment.y() * cell_height,
-                cell_width,
-                cell_height,
+                int(segment.x() * cell_width),
+                int(segment.y() * cell_height),
+                int(cell_width),
+                int(cell_height),
                 self.snake_color
             )
         
         # Draw food
         painter.setBrush(self.food_color)
         painter.fillRect(
-            self.food.x() * cell_width,
-            self.food.y() * cell_height,
-            cell_width,
-            cell_height,
+            int(self.food.x() * cell_width),
+            int(self.food.y() * cell_height),
+            int(cell_width),
+            int(cell_height),
             self.food_color
         )
         
