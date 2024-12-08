@@ -19,6 +19,16 @@ High-performance microscopy image processing application for `.lsm` and `.czi` f
 
 ## Installation
 
+### Option 1: Install from PyPI (Recommended for Users)
+```bash
+# Install the application
+pip install tda-processing-app
+
+# Run the application
+tda-processing-app
+```
+
+### Option 2: Install from Source (For Developers)
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/tda-processing-app.git
@@ -28,14 +38,22 @@ cd tda-processing-app
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install in development mode
+pip install -e .
 ```
 
 ## Usage
 
+### For PyPI Installation
 ```bash
-python main.py
+# Simply run
+tda-processing-app
+```
+
+### For Development Installation
+```bash
+# From the repository root
+python -m tda_processing_app.main
 ```
 
 ### Processing Workflow
