@@ -124,6 +124,7 @@ class ImageSaverWorker(Thread):
 
         # Create RGB image
         ordered_processed = [self.processed_channels[idx] for idx in range(len(self.processed_channels))]
+
         rgb_image = np.stack(
             [ordered_processed[channel_order[i]] if i < len(channel_order) else np.zeros_like(ordered_processed[0])
              for i in range(len(self.processed_channels))], axis=0
@@ -137,12 +138,11 @@ class ImageSaverWorker(Thread):
         filename = f"{base_name}_PROCESSED.tiff"
         output_path = os.path.join(self.output_dir, filename)
 
-        # Save image
         imwrite(
             output_path,
             tiff,
             resolution=(float(self.scaling_params.get('resolution', '1.0')),
-                       float(self.scaling_params.get('resolution', '1.0'))),
+                        float(self.scaling_params.get('resolution', '1.0'))),
             imagej=True,
             metadata={
                 'axes': 'ZCYX',
