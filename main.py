@@ -3,15 +3,14 @@ import os
 import glob
 import time
 import numpy as np
-from decimal import Decimal
 from threading import Thread
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog,
     QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
-    QCheckBox, QLineEdit, QGridLayout, QMessageBox,
-    QGroupBox, QTabWidget, QSizePolicy, QTreeWidget, QTreeWidgetItem, QHeaderView,
-    QTreeWidgetItemIterator, QFrame
+    QGridLayout, QMessageBox,
+    QGroupBox, QTreeWidget, QTreeWidgetItem, QHeaderView,
+    QTreeWidgetItemIterator
 )
 from snake_game import SnakeGame
 from subway_game import SubwayGame
@@ -448,7 +447,7 @@ class MainWindow(QMainWindow):
                 set_output_button.setStyleSheet("""
                     font-size: 10px; 
                     padding: 2px 8px;
-                    background-color: #FFA500;
+                    background-color: #ecf0f1;
                     color: black;
                 """)  # Warning colors with smaller font and padding
                 set_output_button.clicked.connect(lambda _, d=input_dir: self.handle_output_selection(d))
@@ -612,7 +611,6 @@ class MainWindow(QMainWindow):
 
         metadata = self.extract_lsm_metadata(self.current_file)
         if metadata:
-            print(metadata)
             self.scaling_params.update(metadata)
 
         reference_channel = self.select_reference_channel(self.current_file)
@@ -862,7 +860,7 @@ class MainWindow(QMainWindow):
             self.output_file_status_items[output_path] = (item, None)
             
         except Exception as e:
-            print(f"Error updating UI after save: {e}")
+            self.show_error(f"Error updating UI after save: {e}")
 
     def _get_or_create_output_root(self, output_dir):
         """Get or create root item for output directory"""
