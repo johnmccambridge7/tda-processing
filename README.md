@@ -31,7 +31,7 @@ tda-processing-app
 ### Option 2: Install from Source (For Developers)
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/tda-processing-app.git
+git clone https://github.com/yourusername/tda-processing.git
 cd tda-processing-app
 
 # Create virtual environment
