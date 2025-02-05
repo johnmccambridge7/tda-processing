@@ -16,6 +16,11 @@ from snake_game import SnakeGame
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 
+### for czi images
+from lxml import etree
+import czifile as czi
+
+### for lsm
 from tifffile import imwrite, imread, TiffFile
 
 from functions import process_channel
@@ -25,6 +30,13 @@ from constants import (
 )
 from lsm_types import LSMMetadata
 
+def czi_imread(filename):
+    with czi.CziFile(filename) as image:
+        metadata = image.metadata()  # Extract metadata as XML
+        pixels = image.asarray()
+        channels = pixels[0, 0, 0, :, :, :, :].squeeze()  # Selecting the channels only
+        channels = np.transpose(channels, (1,0,2,3)) #transposing so we have Z, C, X, Y
+        return channels
 
 class WorkerSignals(QObject):
     progress = pyqtSignal(int)
@@ -51,10 +63,11 @@ class ImageProcessorWorker(Thread):
         self.start_time = None
         self.channel_idx = channel_idx
         self.scaling_params = scaling_params
+        self.is_czi_file = ".czi" in file_path
 
     def get_total_work(self):
         try:
-            image_data = imread(self.file_path)
+            image_data = imread(self.file_path) if not self.is_czi_file else czi_imread(self.file_path)
             return image_data.shape[0]  # Number of z-slices
         except:
             return 1
@@ -62,7 +75,7 @@ class ImageProcessorWorker(Thread):
     def run(self):
         try:
             self.start_time = time.time()
-            image_data = imread(self.file_path)
+            image_data = imread(self.file_path) if not self.is_czi_file else czi_imread(self.file_path)
             channel_data = image_data[:, self.channel_idx, :, :]
 
             processed = process_channel(
@@ -646,8 +659,10 @@ class MainWindow(QMainWindow):
             self.show_error("Output directory not set for the input directory.")
             return
 
+        is_czi_file = ".czi" in self.current_file
+
         # Get number of channels from the image
-        image_data = imread(self.current_file)
+        image_data = imread(self.current_file) if not is_czi_file else czi_imread(self.current_file)
         num_channels = image_data.shape[1]
         self.expected_total = num_channels  # Update expected total
         
@@ -684,70 +699,98 @@ class MainWindow(QMainWindow):
 
     def extract_lsm_metadata(self, file_path):
         try:
-            with TiffFile(file_path) as tif:
-                if not tif.lsm_metadata:
-                    return {}
+            is_czi_file = ".czi" in file_path
 
-                # Parse metadata into our strongly-typed structure
-                metadata = LSMMetadata(**tif.lsm_metadata)
+            if is_czi_file:
+                with czi.CziFile(file_path) as image:
+                    metadata = image.metadata()
+                    root = etree.fromstring(metadata)
 
-                # Extract voxel sizes and convert from meters to micrometers (µm)
-                voxel_size_x = float(metadata.VoxelSizeX) * 1e6
-                voxel_size_y = float(metadata.VoxelSizeY) * 1e6
-                voxel_size_z = float(metadata.VoxelSizeZ) * 1e6
+                    scaling_values = {}
+                    scaling_items = root.xpath(".//Scaling/Items")
 
-                # Calculate resolution in pixels per micrometer
-                resolution_x = 1.0 / voxel_size_x if voxel_size_x > 0 else 0
-                resolution_y = 1.0 / voxel_size_y if voxel_size_y > 0 else 0
-                resolution = (resolution_x + resolution_y) / 2
+                    if scaling_items:
+                        for distance in scaling_items[0].xpath("Distance"):  # Iterate over <Distance> elements
+                            axis = distance.attrib.get("Id")  # Extract X, Y, or Z from the attribute
+                            value_elem = distance.find("Value")  # Find the <Value> tag inside <Distance>
 
-                # Get channel colors and determine channel order
-                channel_order = []
-                if metadata.ChannelColors and metadata.ChannelColors.Colors:
-                    color_map = {
-                        (0, 255, 0): 1,  # Green -> 1
-                        (255, 0, 0): 0,  # Red -> 0
-                        (0, 0, 255): 2   # Blue -> 2
-                    }
+                            if axis and value_elem is not None:
+                                try:
+                                    value_in_microns = float(value_elem.text) * 1e6  # Convert meters to micrometers
+                                    scaling_values[f"VoxelSize{axis}"] = value_in_microns
+                                except ValueError:
+                                    print(f"Warning: Could not convert value for axis {axis}")
+                        
+                        return scaling_values
+                    else:
+                        print("Could not find Scaling -> Items section in XML.")
+
+
+            if not is_czi_file:
+                with TiffFile(file_path) as tif:
+                    if not tif.lsm_metadata:
+                        return {}
+
+                    # Parse metadata into our strongly-typed structure
+                    metadata = LSMMetadata(**tif.lsm_metadata)
+
+                    # Extract voxel sizes and convert from meters to micrometers (µm)
+                    voxel_size_x = float(metadata.VoxelSizeX) * 1e6
+                    voxel_size_y = float(metadata.VoxelSizeY) * 1e6
+                    voxel_size_z = float(metadata.VoxelSizeZ) * 1e6
+
+                    # Calculate resolution in pixels per micrometer
+                    resolution_x = 1.0 / voxel_size_x if voxel_size_x > 0 else 0
+                    resolution_y = 1.0 / voxel_size_y if voxel_size_y > 0 else 0
+                    resolution = (resolution_x + resolution_y) / 2
+
+                    # Get channel colors and determine channel order
+                    channel_order = []
+                    if metadata.ChannelColors and metadata.ChannelColors.Colors:
+                        color_map = {
+                            (0, 255, 0): 1,  # Green -> 1
+                            (255, 0, 0): 0,  # Red -> 0
+                            (0, 0, 255): 2   # Blue -> 2
+                        }
+                        
+                        for color in metadata.ChannelColors.Colors:
+                            rgb = tuple(color[:3])
+                            if rgb in color_map:
+                                channel_order.append(color_map[rgb])
                     
-                    for color in metadata.ChannelColors.Colors:
-                        rgb = tuple(color[:3])
-                        if rgb in color_map:
-                            channel_order.append(color_map[rgb])
-                
-                # Fallback to default order if no valid colors found
-                if not channel_order:
-                    channel_order = list(range(metadata.DimensionChannels))
+                    # Fallback to default order if no valid colors found
+                    if not channel_order:
+                        channel_order = list(range(metadata.DimensionChannels))
 
-                # Check microscope type from tracks
-                is_lsm510 = 0
-                is_lsm880 = 0
-                if metadata.ScanInformation and metadata.ScanInformation.Tracks:
-                    for track in metadata.ScanInformation.Tracks:
-                        if track.Name.lower().startswith('lsm510'):
-                            is_lsm510 = 1
-                        elif track.Name.lower().startswith('lsm880'):
-                            is_lsm880 = 1
+                    # Check microscope type from tracks
+                    is_lsm510 = 0
+                    is_lsm880 = 0
+                    if metadata.ScanInformation and metadata.ScanInformation.Tracks:
+                        for track in metadata.ScanInformation.Tracks:
+                            if track.Name.lower().startswith('lsm510'):
+                                is_lsm510 = 1
+                            elif track.Name.lower().startswith('lsm880'):
+                                is_lsm880 = 1
 
-                scaling_params = {
-                    'VoxelSizeX': voxel_size_x,
-                    'VoxelSizeY': voxel_size_y,
-                    'VoxelSizeZ': voxel_size_z,
-                    'resolution': resolution,
-                    'lsm510': is_lsm510,
-                    'lsm880': is_lsm880,
-                    'channel_order': channel_order,
-                    'z-step': voxel_size_z,
-                    'source': metadata
-                }
+                    scaling_params = {
+                        'VoxelSizeX': voxel_size_x,
+                        'VoxelSizeY': voxel_size_y,
+                        'VoxelSizeZ': voxel_size_z,
+                        'resolution': resolution,
+                        'lsm510': is_lsm510,
+                        'lsm880': is_lsm880,
+                        'channel_order': channel_order,
+                        'z-step': voxel_size_z,
+                        'source': metadata
+                    }
 
-                return scaling_params
+                    return scaling_params
         except Exception as e:
             self.show_error(f"Error extracting metadata: {e}")
             return {}
 
     def select_reference_channel(self, file_path):
-        image_data = imread(file_path)
+        image_data = imread(file_path) if ".czi" not in file_path else czi_imread(file_path)
         channels = image_data.shape[1]
         snr_values = []
         for channel in range(channels):
