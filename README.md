@@ -3,6 +3,7 @@
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+<img width="1714" alt="Screenshot 2025-02-23 at 11 01 22 PM" src="https://github.com/user-attachments/assets/a934d90e-e85b-4e11-811b-a74b07232974" />
 
 High-performance microscopy image processing application for `.lsm` and `.czi` formats. Implements automated channel processing with histogram matching and reference-based normalization.
 
@@ -19,56 +20,26 @@ High-performance microscopy image processing application for `.lsm` and `.czi` f
 
 ## Installation
 
-### Option 1: Install from PyPI (Recommended for Users)
-```bash
-# Install the application
-pip install tda-processing-app
-
-# Run the application
-tda-processing-app
-```
-
-### Option 2: Install from Source (For Developers)
+### Install from Source (For Developers)
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/tda-processing.git
+git clone [https://github.com/johnmccambridge7/tda-processing.git](https://github.com/johnmccambridge7/tda-processing.git)
 cd tda-processing-app
 
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install in development mode
-pip install -e .
+# Install requirements
+pip install -r requirements.txt
 ```
 
 ## Usage
-
-### For PyPI Installation
-```bash
-# Simply run
-tda-processing-app
-```
 
 ### For Development Installation
 ```bash
 # From the repository root
 python -m tda_processing_app.main
-```
-
-### macOS App Bundle
-You can download the pre-built DMG file from the [releases page](https://github.com/yourusername/tda-processing-app/releases) or build it yourself:
-
-```bash
-# Install development requirements
-pip install -r requirements.txt
-
-# Build the app bundle
-python setup_mac.py py2app
-
-# The .app will be in the dist/ directory
-# To create a DMG, use create-dmg:
-create-dmg --volname "TDA Processing App" --volicon "app_icon.icns" --window-pos 200 120 --window-size 600 400 --icon-size 100 --icon "TDA Processing App.app" 175 120 --hide-extension "TDA Processing App.app" --app-drop-link 425 120 "TDA Processing App.dmg" "dist/TDA Processing App.app"
 ```
 
 ### Processing Workflow
@@ -119,4 +90,4 @@ MIT License - See [LICENSE](LICENSE)
 
 ## Issues & Support
 
-[GitHub Issues](https://github.com/yourusername/tda-processing-app/issues)
+[GitHub Issues](https://github.com/johnmccambridge7/tda-processing-app/issues)
