@@ -27,7 +27,7 @@ git clone https://github.com/johnmccambridge7/tda-processing.git
 cd tda-processing
 
 # Create virtual environment
-python3 -m venv venv
+python3 -m venv venv #may be python instead of python3
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install requirements
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 ### For Development Installation
 ```bash
 # From the repository root
-python -m tda_processing_app.main
+python3 -m tda_processing_app.main #may be python instead of python3
 ```
 
 ### Processing Workflow
