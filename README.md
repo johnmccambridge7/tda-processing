@@ -1,9 +1,9 @@
 
 # TDA Processing App
+<img width="1714" alt="Screenshot 2025-02-23 at 11 01 22 PM" src="https://github.com/user-attachments/assets/a934d90e-e85b-4e11-811b-a74b07232974" />
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-<img width="1714" alt="Screenshot 2025-02-23 at 11 01 22 PM" src="https://github.com/user-attachments/assets/a934d90e-e85b-4e11-811b-a74b07232974" />
 
 High-performance microscopy image processing application for `.lsm` and `.czi` formats. Implements automated channel processing with histogram matching and reference-based normalization.
 
@@ -23,7 +23,7 @@ High-performance microscopy image processing application for `.lsm` and `.czi` f
 ### Install from Source (For Developers)
 ```bash
 # Clone repository
-git clone [https://github.com/johnmccambridge7/tda-processing.git](https://github.com/johnmccambridge7/tda-processing.git)
+git clone https://github.com/johnmccambridge7/tda-processing.git
 cd tda-processing-app
 
 # Create virtual environment
