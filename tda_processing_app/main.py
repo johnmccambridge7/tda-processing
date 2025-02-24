@@ -5,8 +5,6 @@ import time
 import numpy as np
 from threading import Thread
 
-from scipy.ndimage import gaussian_filter
-
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog,
     QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
@@ -52,10 +50,9 @@ class WorkerSignals(QObject):
 
 
 class ImageProcessorWorker(Thread):
-    def __init__(self, file_path, reference_channel, output_dir, signals, channel_idx, scaling_params):
+    def __init__(self, file_path, output_dir, signals, channel_idx, scaling_params):
         super().__init__()
         self.file_path = file_path
-        self.reference_channel = reference_channel
         self.output_dir = output_dir
         self.signals = signals
         self.processed_channels = {}
@@ -639,12 +636,6 @@ class MainWindow(QMainWindow):
         if metadata:
             self.scaling_params = metadata
 
-        reference_channel = self.select_reference_slice(self.current_file)
-        if reference_channel is None:
-            QMessageBox.warning(self, "Reference Channel Not Found",
-                                "Could not determine the reference channel for processing.")
-            return
-
         # Initialize signals
         self.worker_signals = WorkerSignals()
         self.worker_signals.progress.connect(self.update_progress)
@@ -691,7 +682,6 @@ class MainWindow(QMainWindow):
         for channel_idx in range(num_channels):
             worker = ImageProcessorWorker(
                 file_path=self.current_file,
-                reference_channel=reference_channel,
                 output_dir=output_dir,
                 signals=self.worker_signals,
                 channel_idx=channel_idx,
@@ -806,79 +796,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.show_error(f"Error extracting metadata: {e}")
             return {}
-
-    def select_reference_slice(self, file_path, channel=None, sigma=1):
-        """
-        Selects the best reference slice (2D image) from a 3D stack in a given channel.
-        The best slice is defined as the one with the highest SNR after denoising.
-
-        Parameters:
-        file_path (str): The path to the image file.
-        channel (int, optional): Which channel to use for selection. If None, defaults to 0.
-        sigma (float): The sigma value for the Gaussian filter used in denoising.
-
-        Returns:
-        best_slice_index (int): The index of the best (reference) slice.
-        best_denoised_slice (ndarray): The denoised image (2D array) of the best slice.
-        best_snr (float): The SNR of the best slice.
-        """
-        # Load image data using the appropriate reader (assumes shape: [Z, C, X, Y])
-        if ".czi" in file_path:
-            image_data = czi_imread(file_path)
-        else:
-            image_data = imread(file_path)
-        
-        # Ensure we have the expected shape
-        if image_data.ndim != 4:
-            raise ValueError("Expected image data of shape [Z, C, X, Y].")
-        
-        num_slices, num_channels, _, _ = image_data.shape
-        
-        # If no channel is specified, default to channel 0
-        if channel is None:
-            channel = 0
-        if channel >= num_channels:
-            raise ValueError(f"Requested channel {channel} exceeds the number of channels ({num_channels}).")
-        
-        best_snr = -np.inf
-        best_slice_index = None
-        best_denoised_slice = None
-
-        # Iterate over each slice (z-slice) for the given channel
-        for z in range(num_slices):
-            slice_data = image_data[z, channel, :, :].astype(np.float64)
-            
-            # Denoise the slice using a Gaussian filter
-            denoised = gaussian_filter(slice_data, sigma=sigma)
-            
-            # Compute background: use the 5th percentile of pixel values
-            background = np.percentile(denoised, 20)
-            # Compute a robust noise estimate using the median absolute deviation (MAD)
-            median_val = np.median(denoised)
-            mad = np.median(np.abs(denoised - median_val))
-            noise = mad * 1.4826  # Convert MAD to approximate standard deviation
-            if noise < 1e-6:
-                noise = 1e-6
-            
-            # Define signal as the mean of pixels above the background.
-            above_bg = denoised[denoised > background]
-            signal = np.mean(above_bg) if above_bg.size > 0 else np.mean(denoised)
-            
-            # Calculate SNR for this slice.
-            snr = (signal - background) / noise
-            
-            # For debugging, you can print per-slice SNR:
-            print(f" - Slice {z}: signal={signal:.2f}, background={background:.2f}, noise={noise:.2f}, SNR={snr:.2f}")
-            
-            # Update best slice if this slice has a higher SNR.
-            if snr > best_snr:
-                best_snr = snr
-                best_slice_index = z
-                best_denoised_slice = denoised
-
-        print(f"*** Picked: {best_slice_index} with {best_snr}")
-
-        return best_denoised_slice
 
     def update_progress(self, value):
         self.total_progress += value
