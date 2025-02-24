@@ -24,7 +24,7 @@ High-performance microscopy image processing application for `.lsm` and `.czi` f
 ```bash
 # Clone repository
 git clone https://github.com/johnmccambridge7/tda-processing.git
-cd tda-processing-app
+cd tda-processing
 
 # Create virtual environment
 python3 -m venv venv
