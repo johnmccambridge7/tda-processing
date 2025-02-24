@@ -5,6 +5,8 @@ import time
 import numpy as np
 from threading import Thread
 
+from scipy.ndimage import gaussian_filter
+
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog,
     QVBoxLayout, QHBoxLayout, QWidget, QProgressBar,
@@ -62,6 +64,9 @@ class ImageProcessorWorker(Thread):
         self.progress_value = 0
         self.start_time = None
         self.channel_idx = channel_idx
+
+        print(f"IPW: Setting scaling params for: {self.file_path} with {scaling_params.keys()}")
+
         self.scaling_params = scaling_params
         self.is_czi_file = ".czi" in file_path
 
@@ -105,6 +110,8 @@ class ImageSaverWorker(Thread):
     def __init__(self, processed_channels, scaling_params, current_file, output_dir, signals):
         super().__init__()
         self.processed_channels = processed_channels
+        print(f"ISM: Setting scaling params for: {current_file} with {scaling_params.keys()}")
+
         self.scaling_params = scaling_params
         self.current_file = current_file
         self.output_dir = output_dir
@@ -121,13 +128,20 @@ class ImageSaverWorker(Thread):
 
     def _save_image(self):
         # Get channel order from scaling params
-        channel_order = self.scaling_params.get('channel_order', [])
+        #
+        # todo: find channel information for czi images
+        #
+
+        print(f"Obtained channel order: {self.scaling_params.get('channel_order', [])}")
+
+        channel_order = self.scaling_params.get('channel_order', [1, 0])
         if not channel_order:
             channel_order = list(range(len(self.processed_channels)))
 
         if len(channel_order) < 2:
             raise ValueError("Insufficient channels to create an RGB image.")
-
+        
+        print(print(self.scaling_params.keys()), channel_order, len(self.processed_channels))
         if len(self.processed_channels) != len(set(channel_order)):
             raise ValueError(f"Channel count mismatch: Expected {len(set(channel_order))} channels but got {len(self.processed_channels)}.")
 
@@ -476,19 +490,21 @@ class MainWindow(QMainWindow):
                     formatted_size = f"{file_size:.2f} MB"
                     file_item = QTreeWidgetItem(dir_item, [file_name, formatted_size, ""])
                     file_item.setToolTip(1, file_path)  # Full path as tooltip
-                    if file_path in saved_progress and saved_progress[file_path] >= 100:
-                        completed_label = QLabel("Done")
-                        completed_label.setStyleSheet("color: #45a049;")
-                        self.input_file_tree.setItemWidget(file_item, 2, completed_label)
-                    else:
-                        progress_bar = QProgressBar()
-                        progress_bar.setValue(saved_progress.get(file_path, 0))
-                        progress_bar.setMaximum(100)
-                        self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
-                    self.file_status_items[file_path] = (file_item, progress_bar if file_path not in saved_progress or
-                                                                                    saved_progress[
-                                                                                        file_path] < 100 else None)
-
+                    try:
+                        if file_path in saved_progress and saved_progress[file_path] >= 100:
+                            completed_label = QLabel("Done")
+                            completed_label.setStyleSheet("color: #45a049;")
+                            self.input_file_tree.setItemWidget(file_item, 2, completed_label)
+                        else:
+                            progress_bar = QProgressBar()
+                            progress_bar.setValue(saved_progress.get(file_path, 0))
+                            progress_bar.setMaximum(100)
+                            self.input_file_tree.setItemWidget(file_item, 2, progress_bar)
+                        self.file_status_items[file_path] = (file_item, progress_bar if file_path not in saved_progress or
+                                                                                        saved_progress[
+                                                                                            file_path] < 100 else None)
+                    except Exception as e:
+                        print(f"oh buggor: {e}")
             dir_item.setExpanded(True)
 
         if not self.to_process:
@@ -621,9 +637,9 @@ class MainWindow(QMainWindow):
 
         metadata = self.extract_lsm_metadata(self.current_file)
         if metadata:
-            self.scaling_params.update(metadata)
+            self.scaling_params = metadata
 
-        reference_channel = self.select_reference_channel(self.current_file)
+        reference_channel = self.select_reference_slice(self.current_file)
         if reference_channel is None:
             QMessageBox.warning(self, "Reference Channel Not Found",
                                 "Could not determine the reference channel for processing.")
@@ -664,6 +680,7 @@ class MainWindow(QMainWindow):
         # Get number of channels from the image
         image_data = imread(self.current_file) if not is_czi_file else czi_imread(self.current_file)
         num_channels = image_data.shape[1]
+        print(self.current_file, num_channels, is_czi_file)
         self.expected_total = num_channels  # Update expected total
         
         # Create preview labels for the actual number of channels
@@ -703,48 +720,53 @@ class MainWindow(QMainWindow):
 
             if is_czi_file:
                 with czi.CziFile(file_path) as image:
-                    metadata = image.metadata()
-                    root = etree.fromstring(metadata)
-
+                    raw_xml = image.metadata()  # Get the full XML metadata string
+                    root = etree.fromstring(raw_xml)
                     scaling_values = {}
                     scaling_items = root.xpath(".//Scaling/Items")
 
                     if scaling_items:
                         for distance in scaling_items[0].xpath("Distance"):  # Iterate over <Distance> elements
                             axis = distance.attrib.get("Id")  # Extract X, Y, or Z from the attribute
-                            value_elem = distance.find("Value")  # Find the <Value> tag inside <Distance>
-
+                            value_elem = distance.find("Value")  # Find the <Value> tag
                             if axis and value_elem is not None:
                                 try:
-                                    value_in_microns = float(value_elem.text) * 1e6  # Convert meters to micrometers
+                                    # Convert the value from meters to micrometers
+                                    value_in_microns = float(value_elem.text) * 1e6  
                                     scaling_values[f"VoxelSize{axis}"] = value_in_microns
                                 except ValueError:
                                     print(f"Warning: Could not convert value for axis {axis}")
-                        
-                        return scaling_values
+
+                    # If available, set the z-step (or default to 1.0)
+                    scaling_values["z-step"] = scaling_values.get("VoxelSizeZ", 1.0)
+
+                    # Compute resolution if both X and Y voxel sizes are available.
+                    if "VoxelSizeX" in scaling_values and "VoxelSizeY" in scaling_values:
+                        resolution_x = 1.0 / scaling_values["VoxelSizeX"] if scaling_values["VoxelSizeX"] > 0 else 0
+                        resolution_y = 1.0 / scaling_values["VoxelSizeY"] if scaling_values["VoxelSizeY"] > 0 else 0
+                        scaling_values["resolution"] = (resolution_x + resolution_y) / 2
                     else:
-                        print("Could not find Scaling -> Items section in XML.")
+                        scaling_values["resolution"] = 1.0
 
+                    # Store the full raw XML metadata so it can be passed along later if needed.
+                    scaling_values["czi_metadata"] = raw_xml
+                    return scaling_values
 
+            # (The non-CZI branch remains unchanged)
             if not is_czi_file:
                 with TiffFile(file_path) as tif:
                     if not tif.lsm_metadata:
                         return {}
 
-                    # Parse metadata into our strongly-typed structure
                     metadata = LSMMetadata(**tif.lsm_metadata)
-
-                    # Extract voxel sizes and convert from meters to micrometers (µm)
                     voxel_size_x = float(metadata.VoxelSizeX) * 1e6
                     voxel_size_y = float(metadata.VoxelSizeY) * 1e6
                     voxel_size_z = float(metadata.VoxelSizeZ) * 1e6
 
-                    # Calculate resolution in pixels per micrometer
                     resolution_x = 1.0 / voxel_size_x if voxel_size_x > 0 else 0
                     resolution_y = 1.0 / voxel_size_y if voxel_size_y > 0 else 0
                     resolution = (resolution_x + resolution_y) / 2
 
-                    # Get channel colors and determine channel order
                     channel_order = []
                     if metadata.ChannelColors and metadata.ChannelColors.Colors:
                         color_map = {
@@ -752,17 +774,13 @@ class MainWindow(QMainWindow):
                             (255, 0, 0): 0,  # Red -> 0
                             (0, 0, 255): 2   # Blue -> 2
                         }
-                        
                         for color in metadata.ChannelColors.Colors:
                             rgb = tuple(color[:3])
                             if rgb in color_map:
                                 channel_order.append(color_map[rgb])
-                    
-                    # Fallback to default order if no valid colors found
                     if not channel_order:
                         channel_order = list(range(metadata.DimensionChannels))
 
-                    # Check microscope type from tracks
                     is_lsm510 = 0
                     is_lsm880 = 0
                     if metadata.ScanInformation and metadata.ScanInformation.Tracks:
@@ -783,23 +801,84 @@ class MainWindow(QMainWindow):
                         'z-step': voxel_size_z,
                         'source': metadata
                     }
-
                     return scaling_params
+
         except Exception as e:
             self.show_error(f"Error extracting metadata: {e}")
             return {}
 
-    def select_reference_channel(self, file_path):
-        image_data = imread(file_path) if ".czi" not in file_path else czi_imread(file_path)
-        channels = image_data.shape[1]
-        snr_values = []
-        for channel in range(channels):
-            mean = np.mean(image_data[:, channel, :, :])
-            std = np.std(image_data[:, channel, :, :])
-            snr = 10 * np.log10(mean / std) if std != 0 else 0
-            snr_values.append(snr)
-        reference_channel = np.argmax(snr_values)
-        return reference_channel
+    def select_reference_slice(self, file_path, channel=None, sigma=1):
+        """
+        Selects the best reference slice (2D image) from a 3D stack in a given channel.
+        The best slice is defined as the one with the highest SNR after denoising.
+
+        Parameters:
+        file_path (str): The path to the image file.
+        channel (int, optional): Which channel to use for selection. If None, defaults to 0.
+        sigma (float): The sigma value for the Gaussian filter used in denoising.
+
+        Returns:
+        best_slice_index (int): The index of the best (reference) slice.
+        best_denoised_slice (ndarray): The denoised image (2D array) of the best slice.
+        best_snr (float): The SNR of the best slice.
+        """
+        # Load image data using the appropriate reader (assumes shape: [Z, C, X, Y])
+        if ".czi" in file_path:
+            image_data = czi_imread(file_path)
+        else:
+            image_data = imread(file_path)
+        
+        # Ensure we have the expected shape
+        if image_data.ndim != 4:
+            raise ValueError("Expected image data of shape [Z, C, X, Y].")
+        
+        num_slices, num_channels, _, _ = image_data.shape
+        
+        # If no channel is specified, default to channel 0
+        if channel is None:
+            channel = 0
+        if channel >= num_channels:
+            raise ValueError(f"Requested channel {channel} exceeds the number of channels ({num_channels}).")
+        
+        best_snr = -np.inf
+        best_slice_index = None
+        best_denoised_slice = None
+
+        # Iterate over each slice (z-slice) for the given channel
+        for z in range(num_slices):
+            slice_data = image_data[z, channel, :, :].astype(np.float64)
+            
+            # Denoise the slice using a Gaussian filter
+            denoised = gaussian_filter(slice_data, sigma=sigma)
+            
+            # Compute background: use the 5th percentile of pixel values
+            background = np.percentile(denoised, 20)
+            # Compute a robust noise estimate using the median absolute deviation (MAD)
+            median_val = np.median(denoised)
+            mad = np.median(np.abs(denoised - median_val))
+            noise = mad * 1.4826  # Convert MAD to approximate standard deviation
+            if noise < 1e-6:
+                noise = 1e-6
+            
+            # Define signal as the mean of pixels above the background.
+            above_bg = denoised[denoised > background]
+            signal = np.mean(above_bg) if above_bg.size > 0 else np.mean(denoised)
+            
+            # Calculate SNR for this slice.
+            snr = (signal - background) / noise
+            
+            # For debugging, you can print per-slice SNR:
+            print(f" - Slice {z}: signal={signal:.2f}, background={background:.2f}, noise={noise:.2f}, SNR={snr:.2f}")
+            
+            # Update best slice if this slice has a higher SNR.
+            if snr > best_snr:
+                best_snr = snr
+                best_slice_index = z
+                best_denoised_slice = denoised
+
+        print(f"*** Picked: {best_slice_index} with {best_snr}")
+
+        return best_denoised_slice
 
     def update_progress(self, value):
         self.total_progress += value
@@ -807,21 +886,26 @@ class MainWindow(QMainWindow):
             total_work = self.workers[0].total_work * self.expected_total
             progress_percentage = (self.total_progress / total_work) * 100
             progress_percentage = min(progress_percentage, 100)
-
-        # Store progress in the file_progress dictionary
+        
+        # Store progress
         self.file_progress[self.current_file] = progress_percentage
-
-        # Update the input file tree progress
+        
         if self.current_file in self.file_status_items:
             item, progress_bar = self.file_status_items[self.current_file]
-            if progress_bar:
-                progress_bar.setValue(int(progress_percentage))
-                if progress_percentage >= 100:
-                    progress_bar.setProperty("complete", True)
-                    progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
-                    completed_label = QLabel("Done")
-                    completed_label.setStyleSheet("color: #45a049;")
-                    self.input_file_tree.setItemWidget(item, 2, completed_label)
+            if progress_bar is not None:
+                try:
+                    progress_bar.setValue(int(progress_percentage))
+                    if progress_percentage >= 100:
+                        progress_bar.setProperty("complete", True)
+                        progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #45a049; }")
+                        completed_label = QLabel("Done")
+                        completed_label.setStyleSheet("color: #45a049;")
+                        self.input_file_tree.setItemWidget(item, 2, completed_label)
+                        # Remove the reference to the progress bar since it has been replaced
+                        self.file_status_items[self.current_file] = (item, None)
+                except Exception as e:
+                    print(f"fuk: {e}")
+
 
     def update_preview(self, channel_idx, pixmap):
         if 0 <= channel_idx < len(self.preview_labels):
